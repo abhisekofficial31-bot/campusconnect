@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="logo">🎓 CampusConnect</div>
+    <div class="nav-links">
+        <a href="index.html">Events</a>
+        <a href="registrations.html">My Registrations</a>
+        <a class="active" href="admin.html">Admin Panel</a>
+    </div>
+</nav>
+
+<section class="admin-section">
+    <h2>Admin Dashboard</h2>
+    <p>Track and manage student registrations for all events.</p>
+
+    <!-- STATS -->
+    <div class="stats">
+        <div class="stat-card">
+            <h4>Total Registrations</h4>
+            <h2 id="totalReg">0</h2>
+        </div>
+
+        <div class="stat-card">
+            <h4>Active Events</h4>
+            <h2 id="activeEvents">0</h2>
+        </div>
+
+        <div class="stat-card">
+            <h4>Avg Per Event</h4>
+            <h2 id="avgEvent">0</h2>
+        </div>
+
+        <div class="stat-card">
+            <h4>Unique Students</h4>
+            <h2 id="uniqueStudents">0</h2>
+        </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-section">
+        <div class="table-header">
+            <h3>Registered Students</h3>
+            <input type="text" id="searchInput" placeholder="Search student or event..." onkeyup="filterTable()">
+        </div>
+
+        <table id="registrationTable">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Event</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
+</section>
+
+<script src="script.js"></script>
+<script>
+    loadAdminData();
+</script>
+
+</body>
+</html>

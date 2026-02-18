@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CampusConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <div class="logo">🎓 CampusConnect</div>
+    <div class="nav-links">
+        <a href="index.html" class="active">Events</a>
+        <a href="registrations.html">My Registrations</a>
+        <a href="admin.html">Admin Panel</a>
+    </div>
+</nav>
+
+<!-- HERO SECTION -->
+<section class="hero">
+    <h1>Discover Your Campus <span>Experiences</span></h1>
+    <p>From hackathons and business seminars to cultural festivals and sports meets.</p>
+    <input type="text" placeholder="Search events by name or category..." class="search">
+</section>
+
+<!-- EVENTS SECTION -->
+<section class="events">
+
+    <div class="card">
+        <img src="https://images.unsplash.com/photo-1503428593586-e225b39bddfe" alt="">
+        <div class="card-content">
+            <h3>Tech Innovate 2026</h3>
+            <p>📅 March 15, 2026</p>
+            <p>⏰ 10:00 AM</p>
+            <p>📍 Main Auditorium</p>
+            <button onclick="openModal('Tech Innovate 2026')">Register Now</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <img src="https://images.unsplash.com/photo-1511578314322-379afb476865" alt="">
+        <div class="card-content">
+            <h3>Cultural Fest "Harmony"</h3>
+            <p>📅 March 20, 2026</p>
+            <p>⏰ 4:00 PM</p>
+            <p>📍 Central Lawn</p>
+            <button onclick="openModal('Cultural Fest Harmony')">Register Now</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <img src="https://images.unsplash.com/photo-1492724441997-5dc865305da7" alt="">
+        <div class="card-content">
+            <h3>Business Leadership Workshop</h3>
+            <p>📅 March 25, 2026</p>
+            <p>⏰ 11:30 AM</p>
+            <p>📍 Conference Room B</p>
+            <button onclick="openModal('Business Leadership Workshop')">Register Now</button>
+        </div>
+    </div>
+
+</section>
+
+<!-- REGISTRATION MODAL -->
+<div id="registrationModal" class="modal">
+    <div class="modal-content">
+
+        <span class="close" onclick="closeModal()">&times;</span>
+
+        <h3>Event Registration</h3>
+        <p id="eventTitle" class="event-name"></p>
+
+        <input type="text" id="studentName" placeholder="Full Name">
+        <input type="email" id="studentEmail" placeholder="Email Address">
+
+        <div class="row">
+            <select id="branch">
+                <option value="">Select Branch</option>
+                <option>CSE</option>
+                <option>ECE</option>
+                <option>ME</option>
+                <option>CE</option>
+            </select>
+
+            <select id="year">
+                <option value="">Select Year</option>
+                <option>1st Year</option>
+                <option>2nd Year</option>
+                <option>3rd Year</option>
+                <option>4th Year</option>
+            </select>
+        </div>
+
+        <button onclick="submitRegistration()">Submit Registration</button>
+
+    </div>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
+
+

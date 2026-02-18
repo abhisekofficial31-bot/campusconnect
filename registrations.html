@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Registrations</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo">🎓 CampusConnect</div>
+        <div class="nav-links">
+            <a href="index.html">Events</a>
+            <a class="active" href="registrations.html">My Registrations</a>
+            <a href="admin.html">Admin Panel</a>
+        </div>
+    </nav>
+
+    <section class="registration-section">
+        <h2>My Registrations</h2>
+        <p>Enter your email to see all events you have registered for.</p>
+
+        <div class="search-box">
+            <input type="email" id="emailInput" placeholder="Enter your registered email address">
+            <button onclick="findEvents()">Find Events</button>
+        </div>
+
+        <div id="results"></div>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html>

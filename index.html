@@ -15,7 +15,7 @@ if (!localStorage.getItem("email")) {
 }
 </script>
 
-<!-- NAVBAR -->
+<!-- ================= NAVBAR ================= -->
 <nav class="navbar">
 
     <!-- 👤 PROFILE ICON -->
@@ -42,17 +42,17 @@ if (!localStorage.getItem("email")) {
 
 </nav>
 
-<!-- HERO -->
+<!-- ================= HERO ================= -->
 <section class="hero">
     <h1>Discover Your Campus <span>Experiences</span></h1>
     <p>From hackathons to cultural festivals and workshops.</p>
     <input type="text" placeholder="Search events..." class="search" onkeyup="filterEvents(this.value)">
 </section>
 
-<!-- EVENTS -->
+<!-- ================= EVENTS ================= -->
 <section class="events" id="eventsContainer"></section>
 
-<!-- EVENT DETAIL MODAL -->
+<!-- ================= EVENT DETAIL MODAL ================= -->
 <div id="eventDetailModal" class="modal">
     <div class="modal-content" style="max-width:600px">
         <span class="close" onclick="closeDetailModal()">&times;</span>
@@ -67,11 +67,10 @@ if (!localStorage.getItem("email")) {
     </div>
 </div>
 
-<!-- SOCKET -->
+<!-- ================= SOCKET ================= -->
 <script src="https://campusconnect-wasv.onrender.com/socket.io/socket.io.js"></script>
 
 <script>
-
 document.addEventListener("DOMContentLoaded", function() {
 
     const API = "https://campusconnect-wasv.onrender.com";
@@ -79,7 +78,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     let allEvents = [];
 
-    /* USER INFO */
+    /* ================= USER INFO ================= */
+
     const userName = localStorage.getItem("name");
     const userEmail = localStorage.getItem("email");
 
@@ -88,12 +88,13 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById("dropdownEmail").innerText = userEmail;
     }
 
-    /* Hide Admin Link */
+    /* Hide admin link if not admin */
     if (userEmail !== ADMIN_EMAIL) {
         document.getElementById("adminLink").style.display = "none";
     }
 
-    /* LOAD EVENTS */
+    /* ================= LOAD EVENTS ================= */
+
     async function loadEvents() {
         const res = await fetch(`${API}/events`);
         const events = await res.json();
@@ -101,7 +102,8 @@ document.addEventListener("DOMContentLoaded", function() {
         displayEvents(events);
     }
 
-    /* DISPLAY EVENTS */
+    /* ================= DISPLAY EVENTS ================= */
+
     function displayEvents(events) {
 
         const container = document.getElementById("eventsContainer");
@@ -132,13 +134,25 @@ document.addEventListener("DOMContentLoaded", function() {
                         <p>📅 ${event.date}</p>
                         <p>⏰ ${event.time}</p>
                         <p>📍 ${event.location}</p>
+
+                        <button class="register-btn"
+                            onclick="registerEvent('${event.title}')">
+                            Register Now
+                        </button>
                     </div>
                 </div>
             `;
         });
     }
 
-    /* FILTER */
+    /* ================= REGISTER FUNCTION ================= */
+
+    window.registerEvent = function(eventName) {
+        alert("Registered for: " + eventName);
+    }
+
+    /* ================= FILTER ================= */
+
     window.filterEvents = function(value) {
         const filtered = allEvents.filter(event =>
             event.title.toLowerCase().includes(value.toLowerCase())
@@ -146,7 +160,8 @@ document.addEventListener("DOMContentLoaded", function() {
         displayEvents(filtered);
     }
 
-    /* DETAIL MODAL */
+    /* ================= DETAIL MODAL ================= */
+
     window.openDetailModal = function(image, title, date, time, location) {
         document.getElementById("detailImage").src = image;
         document.getElementById("detailTitle").innerText = title;
@@ -160,15 +175,11 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById("eventDetailModal").style.display = "none";
     }
 
-    /* PROFILE MENU */
+    /* ================= PROFILE MENU ================= */
+
     window.toggleProfileMenu = function() {
         const menu = document.getElementById("profileDropdown");
         menu.style.display = menu.style.display === "block" ? "none" : "block";
-    }
-
-    window.logout = function() {
-        localStorage.clear();
-        window.location.href = "signin.html";
     }
 
     window.onclick = function(event) {
@@ -177,12 +188,21 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    /* DARK MODE */
+    /* ================= LOGOUT ================= */
+
+    window.logout = function() {
+        localStorage.clear();
+        window.location.href = "signin.html";
+    }
+
+    /* ================= DARK MODE ================= */
+
     window.toggleDarkMode = function() {
         document.body.classList.toggle("dark-mode");
     }
 
-    /* SOCKET */
+    /* ================= SOCKET ================= */
+
     const socket = io(API);
     socket.on("newNotification", (message) => {
         alert(message);
@@ -190,7 +210,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     loadEvents();
 });
-
 </script>
 
 </body>

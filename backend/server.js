@@ -3,9 +3,9 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
-const nodemailer = require("nodemailer");
 const multer = require("multer");
 const path = require("path");
+const { Resend } = require("resend");
 
 const app = express();
 const server = http.createServer(app);
@@ -16,6 +16,10 @@ const io = new Server(server, {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+
+/* ================= RESEND ================= */
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /* ================= MONGODB ================= */
 
@@ -36,18 +40,7 @@ const storage = multer.diskStorage({
         cb(null, Date.now() + path.extname(file.originalname));
     }
 });
-
 const upload = multer({ storage });
-
-/* ================= EMAIL ================= */
-
-const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
 
 /* ================= SCHEMAS ================= */
 
@@ -66,8 +59,6 @@ const eventSchema = new mongoose.Schema({
     image: String
 });
 const Event = mongoose.model("Event", eventSchema);
-
-/* 🔥 NEW: Registration Schema */
 
 const registrationSchema = new mongoose.Schema({
     eventId: String,
@@ -93,7 +84,6 @@ app.get("/", (req, res) => {
 
 app.post("/add-event", upload.single("image"), async (req, res) => {
     try {
-
         const { title, date, time, location } = req.body;
 
         const newEvent = new Event({
@@ -108,13 +98,13 @@ app.post("/add-event", upload.single("image"), async (req, res) => {
 
         io.emit("newNotification", `📢 New Event Added: ${title}`);
 
-        // 🔥 Send email to ALL users when new event added
+        /* Send email to ALL users */
         const users = await User.find();
         const emails = users.map(user => user.email);
 
         if (emails.length > 0) {
-            await transporter.sendMail({
-                from: process.env.EMAIL_USER,
+            await resend.emails.send({
+                from: "onboarding@resend.dev",
                 to: emails,
                 subject: `New Event: ${title}`,
                 text: `A new event "${title}" has been added.
@@ -137,7 +127,6 @@ Location: ${location}`
 
 app.put("/update-event/:id", async (req, res) => {
     try {
-
         const { title, date, time, location } = req.body;
         const eventId = req.params.id;
 
@@ -145,13 +134,12 @@ app.put("/update-event/:id", async (req, res) => {
             title, date, time, location
         });
 
-        /* Send update email ONLY to registered users */
         const registeredUsers = await Registration.find({ eventId });
         const emails = registeredUsers.map(r => r.userEmail);
 
         if (emails.length > 0) {
-            await transporter.sendMail({
-                from: process.env.EMAIL_USER,
+            await resend.emails.send({
+                from: "onboarding@resend.dev",
                 to: emails,
                 subject: `Event Updated: ${title}`,
                 text: `The event "${title}" has been updated.
@@ -166,30 +154,15 @@ Location: ${location}`
         res.json({ message: "Event updated & emails sent" });
 
     } catch (err) {
+        console.log(err);
         res.json({ message: "Update error" });
     }
-});
-
-/* ================= GET EVENTS ================= */
-
-app.get("/events", async (req, res) => {
-    const events = await Event.find();
-    res.json(events);
-});
-
-/* ================= DELETE EVENT ================= */
-
-app.delete("/delete-event/:id", async (req, res) => {
-    await Event.findByIdAndDelete(req.params.id);
-    await Registration.deleteMany({ eventId: req.params.id });
-    res.json({ message: "Event deleted" });
 });
 
 /* ================= REGISTER EVENT ================= */
 
 app.post("/register-event", async (req, res) => {
     try {
-
         const { eventId, eventTitle, userEmail, userName } = req.body;
 
         const alreadyRegistered = await Registration.findOne({
@@ -210,9 +183,9 @@ app.post("/register-event", async (req, res) => {
 
         await newRegistration.save();
 
-        /* Send confirmation email */
-        await transporter.sendMail({
-            from: process.env.EMAIL_USER,
+        /* Confirmation email */
+        await resend.emails.send({
+            from: "onboarding@resend.dev",
             to: userEmail,
             subject: `Registration Confirmed: ${eventTitle}`,
             text: `Hi ${userName},
@@ -227,15 +200,30 @@ You will receive updates if anything changes.
         res.json({ message: "Registration successful & email sent" });
 
     } catch (err) {
+        console.log(err);
         res.json({ message: "Registration error" });
     }
+});
+
+/* ================= GET EVENTS ================= */
+
+app.get("/events", async (req, res) => {
+    const events = await Event.find();
+    res.json(events);
+});
+
+/* ================= DELETE EVENT ================= */
+
+app.delete("/delete-event/:id", async (req, res) => {
+    await Event.findByIdAndDelete(req.params.id);
+    await Registration.deleteMany({ eventId: req.params.id });
+    res.json({ message: "Event deleted" });
 });
 
 /* ================= SIGNUP ================= */
 
 app.post("/signup", async (req, res) => {
     try {
-
         const { name, email, password } = req.body;
 
         const existingUser = await User.findOne({ email });
@@ -257,7 +245,6 @@ app.post("/signup", async (req, res) => {
 
 app.post("/signin", async (req, res) => {
     try {
-
         const { email, password } = req.body;
         const user = await User.findOne({ email, password });
 

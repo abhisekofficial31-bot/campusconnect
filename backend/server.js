@@ -108,9 +108,27 @@ app.post("/add-event", upload.single("image"), async (req, res) => {
 
         io.emit("newNotification", `📢 New Event Added: ${title}`);
 
-        res.json({ message: "Event added successfully" });
+        // 🔥 Send email to ALL users when new event added
+        const users = await User.find();
+        const emails = users.map(user => user.email);
+
+        if (emails.length > 0) {
+            await transporter.sendMail({
+                from: process.env.EMAIL_USER,
+                to: emails,
+                subject: `New Event: ${title}`,
+                text: `A new event "${title}" has been added.
+
+Date: ${date}
+Time: ${time}
+Location: ${location}`
+            });
+        }
+
+        res.json({ message: "Event added & email sent" });
 
     } catch (err) {
+        console.log(err);
         res.json({ message: "Error adding event" });
     }
 });

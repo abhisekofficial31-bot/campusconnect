@@ -6,6 +6,16 @@
 </head>
 <body>
 
+<!-- 🔒 ADMIN PROTECTION -->
+<script>
+const ADMIN_EMAIL = "abhisekofficial31@gmail.com";
+const currentUser = localStorage.getItem("email");
+
+if (currentUser !== ADMIN_EMAIL) {
+    window.location.href = "index.html";
+}
+</script>
+
 <nav class="navbar">
     <div class="logo">🎓 CampusConnect</div>
     <div class="nav-links">
@@ -58,7 +68,7 @@
 
 <script>
 
-const API = "http://localhost:5000";
+const API = "https://campusconnect-wasv.onrender.com";  // 🔥 LIVE URL
 
 /* ================= ADD EVENT ================= */
 
@@ -72,7 +82,9 @@ async function addEvent() {
     formData.append("location", document.getElementById("location").value);
 
     const imageFile = document.getElementById("image").files[0];
-    formData.append("image", imageFile);
+    if (imageFile) {
+        formData.append("image", imageFile);
+    }
 
     const res = await fetch(API + "/add-event", {
         method: "POST",
@@ -107,7 +119,10 @@ async function loadEvents() {
 
         container.innerHTML += `
             <div style="margin-bottom:15px;padding:15px;border:1px solid #ddd;border-radius:10px;">
-                ${event.image ? `<img src="${API}${event.image}" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-bottom:10px;">` : ""}
+                ${event.image ? 
+                    `<img src="${API}${event.image}" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-bottom:10px;">`
+                    : ""
+                }
                 <h4>${event.title}</h4>
                 <p>📅 ${event.date} | ⏰ ${event.time}</p>
                 <p>📍 ${event.location}</p>

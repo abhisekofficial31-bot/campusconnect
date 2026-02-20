@@ -8,13 +8,20 @@
 
 <body>
 
+<!-- 🔐 LOGIN CHECK -->
+<script>
+if (!localStorage.getItem("email")) {
+    window.location.href = "signin.html";
+}
+</script>
+
 <!-- NAVBAR -->
 <nav class="navbar">
     <div class="logo">🎓 CampusConnect</div>
     <div class="nav-links">
         <a href="index.html" class="active">Events</a>
         <a href="registrations.html">My Registrations</a>
-        <a href="admin.html">Admin Panel</a>
+        <a href="admin.html" id="adminLink">Admin Panel</a>
         <button id="darkToggle" onclick="toggleDarkMode()">🌙</button>
     </div>
 </nav>
@@ -81,10 +88,10 @@
     </div>
 </div>
 
-<!-- SOCKET.IO -->
-<script src="http://localhost:5000/socket.io/socket.io.js"></script>
+<!-- 🔥 SOCKET.IO (LIVE URL) -->
+<script src="https://campusconnect-wasv.onrender.com/socket.io/socket.io.js"></script>
 <script>
-    const socket = io("http://localhost:5000");
+    const socket = io("https://campusconnect-wasv.onrender.com");
 
     socket.on("newNotification", (message) => {
         alert(message);
@@ -94,9 +101,17 @@
 <!-- MAIN SCRIPT -->
 <script>
 
-const API = "http://localhost:5000";
+const API = "https://campusconnect-wasv.onrender.com";
+const ADMIN_EMAIL = "abhisekofficial31@gmail.com";
+
 let allEvents = [];
 let selectedEvent = "";
+
+/* 🔒 Hide Admin Link if not admin */
+const currentUser = localStorage.getItem("email");
+if (currentUser !== ADMIN_EMAIL) {
+    document.getElementById("adminLink").style.display = "none";
+}
 
 /* LOAD EVENTS */
 async function loadEvents() {
@@ -193,8 +208,6 @@ function toggleDarkMode() {
 loadEvents();
 
 </script>
-
-<script src="script.js"></script>
 
 </body>
 </html>

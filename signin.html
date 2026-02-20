@@ -19,7 +19,43 @@
     </div>
 </div>
 
-<script src="script.js"></script>
+<script>
+const API = "https://campusconnect-wasv.onrender.com";  // apna live URL
+
+async function signin() {
+
+    const email = document.getElementById("loginEmail").value;
+    const password = document.getElementById("loginPassword").value;
+
+    if (!email || !password) {
+        alert("Please fill all fields");
+        return;
+    }
+
+    const res = await fetch(API + "/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (data.message !== "Login successful") {
+        alert(data.message);
+        return;
+    }
+
+    // Save email locally
+    localStorage.setItem("email", data.user.email);
+
+    // Redirect based on role
+    if (data.isAdmin) {
+        window.location.href = "admin.html";
+    } else {
+        window.location.href = "index.html";
+    }
+}
+</script>
 
 </body>
 </html>

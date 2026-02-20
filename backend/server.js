@@ -12,50 +12,43 @@ const server = http.createServer(app);
 /* ================= SOCKET.IO ================= */
 
 const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST", "PUT", "DELETE"]
-    }
+    cors: { origin: "*" }
 });
 
 /* ================= MIDDLEWARE ================= */
 
-app.use(cors({
-    origin: "*",
-    credentials: true
-}));
-
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /* ================= MONGODB ================= */
 
-mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-.then(() => console.log("✅ MongoDB Connected"))
-.catch(err => console.log("❌ Mongo Error:", err));
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log("✅ MongoDB Connected"))
+    .catch(err => console.log("❌ Mongo Error:", err));
 
 /* ================= STATIC FILES ================= */
+
+// Serve frontend files (from parent folder)
+app.use(express.static(path.join(__dirname, "..")));
 
 // Serve uploaded images
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// If you have frontend build folder (React), use this:
-// app.use(express.static(path.join(__dirname, "client/build")));
+/* ================= ROOT ROUTE ================= */
+
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "..", "index.html"));
+});
 
 /* ================= MULTER ================= */
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, "uploads"));
-    },
+    destination: path.join(__dirname, "uploads"),
     filename: (req, file, cb) => {
         cb(null, Date.now() + path.extname(file.originalname));
     }
 });
-
 const upload = multer({ storage });
 
 /* ================= SCHEMAS ================= */
@@ -92,12 +85,7 @@ io.on("connection", (socket) => {
 
 /* ================= ROUTES ================= */
 
-app.get("/", (req, res) => {
-    res.send("CampusConnect Backend Running 🚀");
-});
-
-/* ================= ADD EVENT ================= */
-
+// Add Event
 app.post("/add-event", upload.single("image"), async (req, res) => {
     try {
         const { title, date, time, location } = req.body;
@@ -107,7 +95,7 @@ app.post("/add-event", upload.single("image"), async (req, res) => {
             date,
             time,
             location,
-            image: req.file ? `/uploads/${req.file.filename}` : ""
+            image: req.file ? "/uploads/" + req.file.filename : ""
         });
 
         await newEvent.save();
@@ -122,8 +110,7 @@ app.post("/add-event", upload.single("image"), async (req, res) => {
     }
 });
 
-/* ================= GET EVENTS ================= */
-
+// Get Events
 app.get("/events", async (req, res) => {
     try {
         const events = await Event.find().sort({ _id: -1 });
@@ -134,8 +121,7 @@ app.get("/events", async (req, res) => {
     }
 });
 
-/* ================= UPDATE EVENT ================= */
-
+// Update Event
 app.put("/update-event/:id", async (req, res) => {
     try {
         const { title, date, time, location } = req.body;
@@ -155,8 +141,7 @@ app.put("/update-event/:id", async (req, res) => {
     }
 });
 
-/* ================= DELETE EVENT ================= */
-
+// Delete Event
 app.delete("/delete-event/:id", async (req, res) => {
     try {
         await Event.findByIdAndDelete(req.params.id);
@@ -170,8 +155,7 @@ app.delete("/delete-event/:id", async (req, res) => {
     }
 });
 
-/* ================= REGISTER EVENT ================= */
-
+// Register Event
 app.post("/register-event", async (req, res) => {
     try {
         const { eventId, eventTitle, userEmail, userName } = req.body;
@@ -202,8 +186,7 @@ app.post("/register-event", async (req, res) => {
     }
 });
 
-/* ================= AUTH ================= */
-
+// Signup
 app.post("/signup", async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -224,6 +207,7 @@ app.post("/signup", async (req, res) => {
     }
 });
 
+// Signin
 app.post("/signin", async (req, res) => {
     try {
         const { email, password } = req.body;

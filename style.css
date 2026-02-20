@@ -83,9 +83,10 @@ body {
 ================================ */
 
 .events {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 25px;
+    justify-content: center;
     padding: 40px;
 }
 
@@ -94,11 +95,12 @@ body {
 ================================ */
 
 .card {
+    width: 300px;              /* 👈 Fixed width */
     background: white;
-    border-radius: 12px;
+    border-radius: 15px;
     overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-    transition: 0.3s ease;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    transition: 0.3s;
 }
 
 .card:hover {
@@ -107,12 +109,12 @@ body {
 
 .card img {
     width: 100%;
-    height: 180px;
-    object-fit: cover;
+    height: 300px;             /* 👈 Fixed height */
+    object-fit: cover;         /* 👈 Prevent stretch */
 }
 
 .card-content {
-    padding: 20px;
+    padding: 15px;
 }
 
 .card-content h3 {
@@ -375,5 +377,40 @@ body.dark-mode .table-section {
     aspect-ratio: 1 / 1;
     object-fit: cover;
     border-radius: 10px;
+    cursor: pointer;
+}
+
+/* Profile Container */
+.profile-container {
+    position: relative;
+    margin-left: 15px;
+}
+
+.profile-icon {
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.profile-dropdown {
+    display: none;
+    position: absolute;
+    top: 35px;
+    left: 0;
+    width: 180px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    padding: 10px;
+    z-index: 1000;
+}
+
+.profile-dropdown button {
+    width: 100%;
+    padding: 6px;
+    margin-top: 8px;
+    border: none;
+    border-radius: 6px;
+    background: #ff4d4d;
+    color: white;
     cursor: pointer;
 }

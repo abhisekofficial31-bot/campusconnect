@@ -47,6 +47,7 @@ async function signin() {
 
     // Save email locally
     localStorage.setItem("email", data.user.email);
+    localStorage.setItem("name", data.user.name);
 
     // Redirect based on role
     if (data.isAdmin) {

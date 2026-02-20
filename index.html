@@ -17,13 +17,29 @@ if (!localStorage.getItem("email")) {
 
 <!-- NAVBAR -->
 <nav class="navbar">
+
+    <!-- 👤 PROFILE ICON -->
+    <div class="profile-container">
+        <div class="profile-icon" onclick="toggleProfileMenu()">
+            👤
+        </div>
+
+        <div class="profile-dropdown" id="profileDropdown">
+            <p id="dropdownName"></p>
+            <p id="dropdownEmail" style="font-size:12px;color:gray;"></p>
+            <button onclick="logout()">Logout</button>
+        </div>
+    </div>
+
     <div class="logo">🎓 CampusConnect</div>
+
     <div class="nav-links">
         <a href="index.html" class="active">Events</a>
         <a href="registrations.html">My Registrations</a>
         <a href="admin.html" id="adminLink">Admin Panel</a>
-        <button id="darkToggle" onclick="toggleDarkMode()">🌙</button>
+        <button onclick="toggleDarkMode()">🌙</button>
     </div>
+
 </nav>
 
 <!-- HERO -->
@@ -33,48 +49,12 @@ if (!localStorage.getItem("email")) {
     <input type="text" placeholder="Search events..." class="search" onkeyup="filterEvents(this.value)">
 </section>
 
-<!-- EVENTS SECTION -->
+<!-- EVENTS -->
 <section class="events" id="eventsContainer"></section>
-
-<!-- REGISTRATION MODAL -->
-<div id="registrationModal" class="modal">
-    <div class="modal-content">
-
-        <span class="close" onclick="closeModal()">&times;</span>
-
-        <h3>Event Registration</h3>
-        <p id="eventTitle" class="event-name"></p>
-
-        <input type="text" id="studentName" placeholder="Full Name">
-        <input type="email" id="studentEmail" placeholder="Email Address">
-
-        <div class="row">
-            <select id="branch">
-                <option value="">Select Branch</option>
-                <option>CSE</option>
-                <option>ECE</option>
-                <option>ME</option>
-                <option>CE</option>
-            </select>
-
-            <select id="year">
-                <option value="">Select Year</option>
-                <option>1st Year</option>
-                <option>2nd Year</option>
-                <option>3rd Year</option>
-                <option>4th Year</option>
-            </select>
-        </div>
-
-        <button onclick="submitRegistration()">Submit Registration</button>
-
-    </div>
-</div>
 
 <!-- EVENT DETAIL MODAL -->
 <div id="eventDetailModal" class="modal">
     <div class="modal-content" style="max-width:600px">
-
         <span class="close" onclick="closeDetailModal()">&times;</span>
 
         <img id="detailImage"
@@ -84,128 +64,132 @@ if (!localStorage.getItem("email")) {
         <p id="detailDate"></p>
         <p id="detailTime"></p>
         <p id="detailLocation"></p>
-
     </div>
 </div>
 
-<!-- 🔥 SOCKET.IO (LIVE URL) -->
+<!-- SOCKET -->
 <script src="https://campusconnect-wasv.onrender.com/socket.io/socket.io.js"></script>
-<script>
-    const socket = io("https://campusconnect-wasv.onrender.com");
 
+<script>
+
+document.addEventListener("DOMContentLoaded", function() {
+
+    const API = "https://campusconnect-wasv.onrender.com";
+    const ADMIN_EMAIL = "abhisekofficial31@gmail.com";
+
+    let allEvents = [];
+
+    /* USER INFO */
+    const userName = localStorage.getItem("name");
+    const userEmail = localStorage.getItem("email");
+
+    if (userName && userEmail) {
+        document.getElementById("dropdownName").innerText = "👤 " + userName;
+        document.getElementById("dropdownEmail").innerText = userEmail;
+    }
+
+    /* Hide Admin Link */
+    if (userEmail !== ADMIN_EMAIL) {
+        document.getElementById("adminLink").style.display = "none";
+    }
+
+    /* LOAD EVENTS */
+    async function loadEvents() {
+        const res = await fetch(`${API}/events`);
+        const events = await res.json();
+        allEvents = events;
+        displayEvents(events);
+    }
+
+    /* DISPLAY EVENTS */
+    function displayEvents(events) {
+
+        const container = document.getElementById("eventsContainer");
+        container.innerHTML = "";
+
+        if (events.length === 0) {
+            container.innerHTML = "<p style='text-align:center;'>No events available</p>";
+            return;
+        }
+
+        events.forEach(event => {
+            container.innerHTML += `
+                <div class="card">
+                    ${event.image ?
+                        `<img src="${API}${event.image}"
+                         onclick="openDetailModal(
+                            '${API}${event.image}',
+                            '${event.title}',
+                            '${event.date}',
+                            '${event.time}',
+                            '${event.location}'
+                         )">`
+                        :
+                        `<img src="https://via.placeholder.com/400x400?text=No+Image">`
+                    }
+                    <div class="card-content">
+                        <h3>${event.title}</h3>
+                        <p>📅 ${event.date}</p>
+                        <p>⏰ ${event.time}</p>
+                        <p>📍 ${event.location}</p>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    /* FILTER */
+    window.filterEvents = function(value) {
+        const filtered = allEvents.filter(event =>
+            event.title.toLowerCase().includes(value.toLowerCase())
+        );
+        displayEvents(filtered);
+    }
+
+    /* DETAIL MODAL */
+    window.openDetailModal = function(image, title, date, time, location) {
+        document.getElementById("detailImage").src = image;
+        document.getElementById("detailTitle").innerText = title;
+        document.getElementById("detailDate").innerText = "📅 " + date;
+        document.getElementById("detailTime").innerText = "⏰ " + time;
+        document.getElementById("detailLocation").innerText = "📍 " + location;
+        document.getElementById("eventDetailModal").style.display = "flex";
+    }
+
+    window.closeDetailModal = function() {
+        document.getElementById("eventDetailModal").style.display = "none";
+    }
+
+    /* PROFILE MENU */
+    window.toggleProfileMenu = function() {
+        const menu = document.getElementById("profileDropdown");
+        menu.style.display = menu.style.display === "block" ? "none" : "block";
+    }
+
+    window.logout = function() {
+        localStorage.clear();
+        window.location.href = "signin.html";
+    }
+
+    window.onclick = function(event) {
+        if (!event.target.closest(".profile-container")) {
+            document.getElementById("profileDropdown").style.display = "none";
+        }
+    }
+
+    /* DARK MODE */
+    window.toggleDarkMode = function() {
+        document.body.classList.toggle("dark-mode");
+    }
+
+    /* SOCKET */
+    const socket = io(API);
     socket.on("newNotification", (message) => {
         alert(message);
     });
-</script>
 
-<!-- MAIN SCRIPT -->
-<script>
-
-const API = "https://campusconnect-wasv.onrender.com";
-const ADMIN_EMAIL = "abhisekofficial31@gmail.com";
-
-let allEvents = [];
-let selectedEvent = "";
-
-/* 🔒 Hide Admin Link if not admin */
-const currentUser = localStorage.getItem("email");
-if (currentUser !== ADMIN_EMAIL) {
-    document.getElementById("adminLink").style.display = "none";
-}
-
-/* LOAD EVENTS */
-async function loadEvents() {
-
-    const res = await fetch(`${API}/events`);
-    const events = await res.json();
-
-    allEvents = events;
-    displayEvents(events);
-}
-
-/* DISPLAY EVENTS */
-function displayEvents(events) {
-
-    const container = document.getElementById("eventsContainer");
-    container.innerHTML = "";
-
-    if (events.length === 0) {
-        container.innerHTML = "<p style='text-align:center;'>No events available</p>";
-        return;
-    }
-
-    events.forEach(event => {
-
-        container.innerHTML += `
-            <div class="card">
-                ${event.image ?
-                    `<img src="${API}${event.image}"
-                     onclick="openDetailModal(
-                        '${API}${event.image}',
-                        '${event.title}',
-                        '${event.date}',
-                        '${event.time}',
-                        '${event.location}'
-                     )">`
-                    :
-                    `<img src="https://via.placeholder.com/400x400?text=No+Image">`
-                }
-                <div class="card-content">
-                    <h3>${event.title}</h3>
-                    <p>📅 ${event.date}</p>
-                    <p>⏰ ${event.time}</p>
-                    <p>📍 ${event.location}</p>
-                    <button onclick="openModal('${event.title}')">Register Now</button>
-                </div>
-            </div>
-        `;
-    });
-}
-
-/* FILTER */
-function filterEvents(value) {
-
-    const filtered = allEvents.filter(event =>
-        event.title.toLowerCase().includes(value.toLowerCase())
-    );
-
-    displayEvents(filtered);
-}
-
-/* REGISTRATION MODAL */
-function openModal(eventName) {
-    selectedEvent = eventName;
-    document.getElementById("eventTitle").innerText = eventName;
-    document.getElementById("registrationModal").style.display = "flex";
-}
-
-function closeModal() {
-    document.getElementById("registrationModal").style.display = "none";
-}
-
-/* DETAIL MODAL */
-function openDetailModal(image, title, date, time, location) {
-
-    document.getElementById("detailImage").src = image;
-    document.getElementById("detailTitle").innerText = title;
-    document.getElementById("detailDate").innerText = "📅 " + date;
-    document.getElementById("detailTime").innerText = "⏰ " + time;
-    document.getElementById("detailLocation").innerText = "📍 " + location;
-
-    document.getElementById("eventDetailModal").style.display = "flex";
-}
-
-function closeDetailModal() {
-    document.getElementById("eventDetailModal").style.display = "none";
-}
-
-/* DARK MODE */
-function toggleDarkMode() {
-    document.body.classList.toggle("dark-mode");
-}
-
-/* AUTO LOAD */
-loadEvents();
+    loadEvents();
+});
 
 </script>
 

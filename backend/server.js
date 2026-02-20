@@ -16,6 +16,7 @@ const io = new Server(server, {
 });
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
 /* ===== MongoDB ===== */
@@ -24,13 +25,26 @@ mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("MongoDB Atlas Connected"))
     .catch(err => console.log("Mongo Error:", err));
 
-/* ===== Static Folder for Images ===== */
-app.use("/uploads", express.static("uploads"));
+/* ===== Serve Frontend Files ===== */
+/* Repo structure assumed:
+   root
+    ├── index.html
+    ├── admin.html
+    ├── style.css
+    ├── script.js
+    └── backend
+          └── server.js
+*/
+
+app.use(express.static(path.join(__dirname, "../")));
+
+/* ===== Static Folder for Uploaded Images ===== */
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /* ===== Multer Setup ===== */
 
 const storage = multer.diskStorage({
-    destination: "./uploads/",
+    destination: path.join(__dirname, "uploads"),
     filename: (req, file, cb) => {
         cb(null, Date.now() + path.extname(file.originalname));
     }
@@ -48,7 +62,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-/* ===== User Schema ===== */
+/* ===== Schemas ===== */
 
 const userSchema = new mongoose.Schema({
     name: String,
@@ -57,8 +71,6 @@ const userSchema = new mongoose.Schema({
 });
 
 const User = mongoose.model("User", userSchema);
-
-/* ===== Event Schema ===== */
 
 const eventSchema = new mongoose.Schema({
     title: String,
@@ -76,11 +88,16 @@ io.on("connection", (socket) => {
     console.log("User Connected:", socket.id);
 });
 
-/* ===== Add Event API (Upload + Email + Realtime) ===== */
+/* ===== Root Route (Homepage) ===== */
+
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "../index.html"));
+});
+
+/* ===== Add Event API ===== */
 
 app.post("/add-event", upload.single("image"), async (req, res) => {
     try {
-
         const { title, date, time, location } = req.body;
 
         if (!title) {
@@ -97,20 +114,21 @@ app.post("/add-event", upload.single("image"), async (req, res) => {
 
         await newEvent.save();
 
-        // 🔥 Realtime Notification
         io.emit("newNotification", `📢 New Event Added: ${title}`);
 
-        // 📧 Send Email to All Users
         const users = await User.find();
-
         const emails = users.map(user => user.email);
 
         if (emails.length > 0) {
             await transporter.sendMail({
-                from: "24057004@kiit.ac.in",
+                from: process.env.EMAIL_USER,
                 to: emails,
                 subject: `New Event: ${title}`,
-                text: `A new event "${title}" has been added on CampusConnect.\n\nDate: ${date}\nTime: ${time}\nLocation: ${location}`
+                text: `A new event "${title}" has been added on CampusConnect.
+
+Date: ${date}
+Time: ${time}
+Location: ${location}`
             });
         }
 
@@ -136,7 +154,7 @@ app.delete("/delete-event/:id", async (req, res) => {
     res.json({ message: "Event deleted" });
 });
 
-/* ===== Signup API ===== */
+/* ===== Signup ===== */
 
 app.post("/signup", async (req, res) => {
     try {
@@ -158,7 +176,7 @@ app.post("/signup", async (req, res) => {
     }
 });
 
-/* ===== Signin API ===== */
+/* ===== Signin ===== */
 
 app.post("/signin", async (req, res) => {
     try {
@@ -184,4 +202,3 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log("Server running on port", PORT);
 });
-

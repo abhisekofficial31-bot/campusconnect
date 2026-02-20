@@ -20,9 +20,9 @@ app.use(cors());
 
 /* ===== MongoDB ===== */
 
-mongoose.connect("mongodb+srv://campususer:campus123@cluster0.okcoynj.mongodb.net/campusconnect?retryWrites=true&w=majority")
-.then(() => console.log("MongoDB Atlas Connected"))
-.catch(err => console.log("Mongo Error:", err));
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log("MongoDB Atlas Connected"))
+    .catch(err => console.log("Mongo Error:", err));
 
 /* ===== Static Folder for Images ===== */
 app.use("/uploads", express.static("uploads"));
@@ -43,8 +43,8 @@ const upload = multer({ storage });
 const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-        user: "abhisekofficial31@gmail.com",
-        pass: "xraqnckgypawfdrs"  // 🔴 Replace with your Gmail App Password
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
     }
 });
 
@@ -179,8 +179,9 @@ app.post("/signin", async (req, res) => {
 
 /* ===== Start Server ===== */
 
-server.listen(5000, () => {
-    console.log("Server running on port 5000");
+const PORT = process.env.PORT || 5000;
+
+server.listen(PORT, () => {
+    console.log("Server running on port", PORT);
 });
- 
 

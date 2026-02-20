@@ -19,6 +19,12 @@ app.use(cors());
 
 /* ================= RESEND ================= */
 
+if (!process.env.RESEND_API_KEY) {
+    console.log("❌ RESEND_API_KEY is NOT loaded");
+} else {
+    console.log("✅ RESEND_API_KEY loaded");
+}
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 /* ================= MONGODB ================= */
@@ -68,12 +74,6 @@ const registrationSchema = new mongoose.Schema({
 });
 const Registration = mongoose.model("Registration", registrationSchema);
 
-/* ================= SOCKET ================= */
-
-io.on("connection", (socket) => {
-    console.log("User Connected:", socket.id);
-});
-
 /* ================= ROUTES ================= */
 
 app.get("/", (req, res) => {
@@ -96,66 +96,28 @@ app.post("/add-event", upload.single("image"), async (req, res) => {
 
         await newEvent.save();
 
-        io.emit("newNotification", `📢 New Event Added: ${title}`);
-
-        /* Send email to ALL users */
         const users = await User.find();
         const emails = users.map(user => user.email);
 
+        console.log("📧 Emails to send:", emails);
+
         if (emails.length > 0) {
-            await resend.emails.send({
+
+            const response = await resend.emails.send({
                 from: "onboarding@resend.dev",
                 to: emails,
                 subject: `New Event: ${title}`,
-                text: `A new event "${title}" has been added.
-
-Date: ${date}
-Time: ${time}
-Location: ${location}`
+                text: `Test Email from CampusConnect`
             });
+
+            console.log("🔥 RESEND RESPONSE:", response);
         }
 
-        res.json({ message: "Event added & email sent" });
+        res.json({ message: "Event added" });
 
     } catch (err) {
-        console.log(err);
+        console.log("❌ ADD EVENT ERROR:", err);
         res.json({ message: "Error adding event" });
-    }
-});
-
-/* ================= UPDATE EVENT ================= */
-
-app.put("/update-event/:id", async (req, res) => {
-    try {
-        const { title, date, time, location } = req.body;
-        const eventId = req.params.id;
-
-        await Event.findByIdAndUpdate(eventId, {
-            title, date, time, location
-        });
-
-        const registeredUsers = await Registration.find({ eventId });
-        const emails = registeredUsers.map(r => r.userEmail);
-
-        if (emails.length > 0) {
-            await resend.emails.send({
-                from: "onboarding@resend.dev",
-                to: emails,
-                subject: `Event Updated: ${title}`,
-                text: `The event "${title}" has been updated.
-
-New Details:
-Date: ${date}
-Time: ${time}
-Location: ${location}`
-            });
-        }
-
-        res.json({ message: "Event updated & emails sent" });
-
-    } catch (err) {
-        console.log(err);
-        res.json({ message: "Update error" });
     }
 });
 
@@ -164,15 +126,6 @@ Location: ${location}`
 app.post("/register-event", async (req, res) => {
     try {
         const { eventId, eventTitle, userEmail, userName } = req.body;
-
-        const alreadyRegistered = await Registration.findOne({
-            eventId,
-            userEmail
-        });
-
-        if (alreadyRegistered) {
-            return res.json({ message: "Already registered" });
-        }
 
         const newRegistration = new Registration({
             eventId,
@@ -183,24 +136,19 @@ app.post("/register-event", async (req, res) => {
 
         await newRegistration.save();
 
-        /* Confirmation email */
-        await resend.emails.send({
+        const response = await resend.emails.send({
             from: "onboarding@resend.dev",
             to: userEmail,
-            subject: `Registration Confirmed: ${eventTitle}`,
-            text: `Hi ${userName},
-
-You have successfully registered for "${eventTitle}".
-
-You will receive updates if anything changes.
-
-- CampusConnect Team`
+            subject: `Registration Confirmed`,
+            text: `Test Registration Email`
         });
 
-        res.json({ message: "Registration successful & email sent" });
+        console.log("🔥 REGISTRATION EMAIL RESPONSE:", response);
+
+        res.json({ message: "Registered" });
 
     } catch (err) {
-        console.log(err);
+        console.log("❌ REGISTER ERROR:", err);
         res.json({ message: "Registration error" });
     }
 });
@@ -210,59 +158,6 @@ You will receive updates if anything changes.
 app.get("/events", async (req, res) => {
     const events = await Event.find();
     res.json(events);
-});
-
-/* ================= DELETE EVENT ================= */
-
-app.delete("/delete-event/:id", async (req, res) => {
-    await Event.findByIdAndDelete(req.params.id);
-    await Registration.deleteMany({ eventId: req.params.id });
-    res.json({ message: "Event deleted" });
-});
-
-/* ================= SIGNUP ================= */
-
-app.post("/signup", async (req, res) => {
-    try {
-        const { name, email, password } = req.body;
-
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.json({ message: "User already exists" });
-        }
-
-        const newUser = new User({ name, email, password });
-        await newUser.save();
-
-        res.json({ message: "Signup successful" });
-
-    } catch {
-        res.json({ message: "Signup error" });
-    }
-});
-
-/* ================= SIGNIN ================= */
-
-app.post("/signin", async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email, password });
-
-        if (!user) {
-            return res.json({ message: "Invalid credentials" });
-        }
-
-        const isAdmin = email === process.env.ADMIN_EMAIL;
-
-        res.json({
-            message: "Login successful",
-            user,
-            isAdmin
-        });
-
-    } catch {
-        res.json({ message: "Login error" });
-    }
 });
 
 /* ================= START SERVER ================= */

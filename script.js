@@ -14,9 +14,7 @@ function closeModal() {
     document.getElementById("registrationModal").style.display = "none";
 }
 
-/* =========================
-   SUBMIT REGISTRATION
-========================= */
+/* SUBMIT REGISTRATION */
 
 function submitRegistration() {
 
@@ -65,9 +63,7 @@ function submitRegistration() {
 }
 
 
-/* =========================
-   MY REGISTRATIONS PAGE
-========================= */
+/* MY REGISTRATIONS PAGE */
 
 function findEvents() {
 
@@ -100,9 +96,7 @@ function findEvents() {
 }
 
 
-/* =========================
-   ADMIN DASHBOARD
-========================= */
+/* ADMIN DASHBOARD*/
 
 function loadAdminData() {
 
@@ -147,9 +141,7 @@ function loadAdminData() {
 }
 
 
-/* =========================
-   TABLE SEARCH FILTER
-========================= */
+/*TABLE SEARCH FILTER*/
 
 function filterTable() {
 
@@ -161,4 +153,81 @@ function filterTable() {
         row.style.display = text.includes(input) ? "" : "none";
     });
 }
+
+/* DARK MODE */
+function toggleDarkMode() {
+
+    document.body.classList.toggle("dark-mode");
+
+    // Save mode in localStorage
+    if (document.body.classList.contains("dark-mode")) {
+        localStorage.setItem("theme", "dark");
+        document.getElementById("darkToggle").innerText = "☀️";
+    } else {
+        localStorage.setItem("theme", "light");
+        document.getElementById("darkToggle").innerText = "🌙";
+    }
+}
+
+
+// Load saved theme on page load
+window.onload = function() {
+
+    let savedTheme = localStorage.getItem("theme");
+
+    if (savedTheme === "dark") {
+        document.body.classList.add("dark-mode");
+        let btn = document.getElementById("darkToggle");
+        if (btn) btn.innerText = "☀️";
+    }
+
+    // Load admin data if page exists
+    if (typeof loadAdminData === "function") {
+        loadAdminData();
+    }
+};
+/* SIGNUP */
+function signup() {
+
+    let name = document.getElementById("name").value;
+    let email = document.getElementById("email").value;
+    let password = document.getElementById("password").value;
+
+    fetch("http://localhost:5000/signup", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name, email, password })
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message);
+    });
+}
+
+/* SIGNIN */
+function signin() {
+
+    let email = document.getElementById("loginEmail").value;
+    let password = document.getElementById("loginPassword").value;
+
+    fetch("http://localhost:5000/signin", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email, password })
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message);
+
+        if (data.message === "Login successful") {
+            localStorage.setItem("user", JSON.stringify(data.user));
+            window.location.href = "index.html";
+        }
+    });
+}
+
 

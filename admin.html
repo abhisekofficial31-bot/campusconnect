@@ -16,56 +16,120 @@
 </nav>
 
 <section class="admin-section">
+
     <h2>Admin Dashboard</h2>
-    <p>Track and manage student registrations for all events.</p>
+    <p>Manage events and track registrations.</p>
 
-    <!-- STATS -->
-    <div class="stats">
-        <div class="stat-card">
-            <h4>Total Registrations</h4>
-            <h2 id="totalReg">0</h2>
-        </div>
+    <!-- ================= ADD EVENT ================= -->
 
-        <div class="stat-card">
-            <h4>Active Events</h4>
-            <h2 id="activeEvents">0</h2>
-        </div>
+    <div class="table-section">
+        <h3>Add New Event</h3>
 
-        <div class="stat-card">
-            <h4>Avg Per Event</h4>
-            <h2 id="avgEvent">0</h2>
-        </div>
+        <input type="text" id="title" placeholder="Event Title" required>
+        <input type="date" id="date" required>
+        <input type="time" id="time" required>
+        <input type="text" id="location" placeholder="Location" required>
+        <input type="file" id="image" accept="image/*">
 
-        <div class="stat-card">
-            <h4>Unique Students</h4>
-            <h2 id="uniqueStudents">0</h2>
-        </div>
+        <button onclick="addEvent()">Add Event</button>
     </div>
 
-    <!-- TABLE -->
-    <div class="table-section">
-        <div class="table-header">
-            <h3>Registered Students</h3>
-            <input type="text" id="searchInput" placeholder="Search student or event..." onkeyup="filterTable()">
-        </div>
+    <br>
 
-        <table id="registrationTable">
-            <thead>
-                <tr>
-                    <th>Email</th>
-                    <th>Event</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
+    <!-- ================= EVENTS LIST ================= -->
+
+    <div class="table-section">
+        <h3>All Events</h3>
+        <div id="eventList"></div>
+    </div>
+
+    <br>
+
+    <!-- ================= STATS ================= -->
+
+    <div class="stats">
+        <div class="stat-card">
+            <h4>Total Events</h4>
+            <h2 id="totalEvents">0</h2>
+        </div>
     </div>
 
 </section>
 
-<script src="script.js"></script>
 <script>
-    loadAdminData();
+
+const API = "http://localhost:5000";
+
+/* ================= ADD EVENT ================= */
+
+async function addEvent() {
+
+    const formData = new FormData();
+
+    formData.append("title", document.getElementById("title").value);
+    formData.append("date", document.getElementById("date").value);
+    formData.append("time", document.getElementById("time").value);
+    formData.append("location", document.getElementById("location").value);
+
+    const imageFile = document.getElementById("image").files[0];
+    formData.append("image", imageFile);
+
+    const res = await fetch(API + "/add-event", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await res.json();
+    alert(data.message);
+
+    document.getElementById("title").value = "";
+    document.getElementById("date").value = "";
+    document.getElementById("time").value = "";
+    document.getElementById("location").value = "";
+    document.getElementById("image").value = "";
+
+    loadEvents();
+}
+
+/* ================= LOAD EVENTS ================= */
+
+async function loadEvents() {
+
+    const res = await fetch(API + "/events");
+    const events = await res.json();
+
+    const container = document.getElementById("eventList");
+    container.innerHTML = "";
+
+    document.getElementById("totalEvents").innerText = events.length;
+
+    events.forEach(event => {
+
+        container.innerHTML += `
+            <div style="margin-bottom:15px;padding:15px;border:1px solid #ddd;border-radius:10px;">
+                ${event.image ? `<img src="${API}${event.image}" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-bottom:10px;">` : ""}
+                <h4>${event.title}</h4>
+                <p>📅 ${event.date} | ⏰ ${event.time}</p>
+                <p>📍 ${event.location}</p>
+                <button onclick="deleteEvent('${event._id}')">Delete</button>
+            </div>
+        `;
+    });
+}
+
+/* ================= DELETE EVENT ================= */
+
+async function deleteEvent(id) {
+
+    await fetch(API + "/delete-event/" + id, {
+        method: "DELETE"
+    });
+
+    loadEvents();
+}
+
+loadEvents();
+
 </script>
 
 </body>

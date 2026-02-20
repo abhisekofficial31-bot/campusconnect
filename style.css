@@ -1,3 +1,7 @@
+/* ===============================
+   GLOBAL RESET
+================================ */
+
 * {
     margin: 0;
     padding: 0;
@@ -5,12 +9,18 @@
     font-family: 'Segoe UI', sans-serif;
 }
 
+html, body {
+    height: 100%;
+}
+
 body {
     background: #f5f6fa;
     color: #222;
 }
 
-/* NAVBAR */
+/* ===============================
+   NAVBAR
+================================ */
 
 .navbar {
     display: flex;
@@ -32,7 +42,14 @@ body {
     font-size: 14px;
 }
 
-/* HERO */
+.active {
+    color: #5b4bff;
+    font-weight: bold;
+}
+
+/* ===============================
+   HERO SECTION
+================================ */
 
 .hero {
     text-align: center;
@@ -61,7 +78,9 @@ body {
     border: 1px solid #ddd;
 }
 
-/* EVENTS GRID */
+/* ===============================
+   EVENTS GRID
+================================ */
 
 .events {
     display: grid;
@@ -70,7 +89,9 @@ body {
     padding: 40px;
 }
 
-/* CARD */
+/* ===============================
+   CARD
+================================ */
 
 .card {
     background: white;
@@ -104,6 +125,10 @@ body {
     margin: 4px 0;
 }
 
+/* ===============================
+   BUTTONS
+================================ */
+
 button {
     margin-top: 15px;
     width: 100%;
@@ -120,6 +145,10 @@ button {
 button:hover {
     opacity: 0.9;
 }
+
+/* ===============================
+   REGISTRATION PAGE
+================================ */
 
 .registration-section {
     text-align: center;
@@ -155,39 +184,17 @@ button:hover {
     font-size: 14px;
 }
 
-.search-box button {
-    padding: 12px 20px;
-    border: none;
-    border-radius: 8px;
-    background: linear-gradient(45deg, #5b4bff, #7b6dff);
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.active {
-    color: #5b4bff;
-    font-weight: bold;
-}
-
 #results {
     margin-top: 30px;
 }
 
+/* ===============================
+   ADMIN PANEL
+================================ */
+
 .admin-section {
     padding: 40px;
 }
-
-.admin-section h2 {
-    font-size: 26px;
-}
-
-.admin-section p {
-    color: #666;
-    margin-bottom: 30px;
-}
-
-/* Stats */
 
 .stats {
     display: grid;
@@ -213,8 +220,6 @@ button:hover {
     color: #5b4bff;
 }
 
-/* Table */
-
 .table-section {
     background: white;
     padding: 20px;
@@ -228,12 +233,6 @@ button:hover {
     margin-bottom: 15px;
 }
 
-.table-header input {
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid #ddd;
-}
-
 table {
     width: 100%;
     border-collapse: collapse;
@@ -245,20 +244,20 @@ th, td {
     border-bottom: 1px solid #eee;
 }
 
-/* MODAL */
+/* ===============================
+   MODAL
+================================ */
 
 .modal {
-    display: none;
+    display: none;  /* keep hidden by default */
     position: fixed;
     z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
+    inset: 0;
     background: rgba(0,0,0,0.5);
     justify-content: center;
     align-items: center;
 }
+
 
 .modal-content {
     background: white;
@@ -268,33 +267,77 @@ th, td {
     position: relative;
 }
 
-.modal-content h3 {
-    margin-bottom: 5px;
+.close {
+    position: absolute;
+    right: 15px;
+    top: 10px;
+    font-size: 20px;
+    cursor: pointer;
 }
 
-.event-name {
-    color: #5b4bff;
-    margin-bottom: 15px;
+/* ===============================
+   DARK MODE
+================================ */
+
+body.dark-mode {
+    background-color: #121212;
+    color: #ffffff;
 }
 
-.modal-content input,
-.modal-content select {
-    width: 100%;
-    padding: 10px;
-    margin: 8px 0;
-    border-radius: 6px;
-    border: 1px solid #ddd;
+body.dark-mode .navbar,
+body.dark-mode .card,
+body.dark-mode .modal-content,
+body.dark-mode .stat-card,
+body.dark-mode .table-section {
+    background: #1e1e1e;
+    color: white;
 }
 
-.modal-content .row {
+/* ===============================
+   AUTH PAGES (Sign In / Sign Up)
+================================ */
+
+.auth-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #5b4bff, #7b6dff);
     display: flex;
-    gap: 10px;
+    justify-content: center;
+    align-items: center;
 }
 
-.modal-content button {
-    margin-top: 15px;
+.auth-box {
+    background: #ffffff;
+    padding: 40px;
+    width: 350px;
+    border-radius: 12px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    text-align: center;
+    animation: fadeIn 0.4s ease;
+}
+
+.auth-box h2 {
+    margin-bottom: 20px;
+}
+
+.auth-box input {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+}
+
+.auth-box input:focus {
+    border-color: #5b4bff;
+    outline: none;
+    box-shadow: 0 0 8px rgba(91,75,255,0.3);
+}
+
+.auth-box button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 15px;
     border: none;
     border-radius: 8px;
     background: linear-gradient(45deg, #5b4bff, #7b6dff);
@@ -303,10 +346,34 @@ th, td {
     cursor: pointer;
 }
 
-.close {
-    position: absolute;
-    right: 15px;
-    top: 10px;
-    font-size: 20px;
+.auth-box p {
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+.auth-box a {
+    color: #5b4bff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.auth-box a:hover {
+    text-decoration: underline;
+}
+
+/* Animation */
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== EVENT IMAGE SQUARE ===== */
+
+.card img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 10px;
     cursor: pointer;
 }

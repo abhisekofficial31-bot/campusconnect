@@ -188,7 +188,13 @@ app.post("/signin", async (req, res) => {
             return res.json({ message: "Invalid credentials" });
         }
 
-        res.json({ message: "Login successful", user });
+        const isAdmin = email === process.env.ADMIN_EMAIL;
+
+        res.json({
+            message: "Login successful",
+            user,
+            isAdmin
+        });
 
     } catch (err) {
         res.json({ message: "Error during login" });

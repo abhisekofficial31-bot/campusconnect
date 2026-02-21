@@ -9,7 +9,7 @@ const path = require("path");
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
-
+const upload = multer({ storage });
 // ❌ Email abhi disable kar rahe hain (baad me add karenge)
 const nodemailer = require("nodemailer");
 
@@ -42,10 +42,13 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
-    params: {
-        folder: "campusconnect",
-        allowed_formats: ["jpg", "png", "jpeg"]
-    }
+    params: async (req, file) => {
+        return {
+            folder: "campusconnect",
+            format: file.mimetype.split("/")[1],
+            public_id: Date.now() + "-" + file.originalname,
+        };
+    },
 });
 
 const upload = multer({ storage });

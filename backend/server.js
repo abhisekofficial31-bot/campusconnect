@@ -11,7 +11,7 @@ const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 // ❌ Email abhi disable kar rahe hain (baad me add karenge)
-// const nodemailer = require("nodemailer");
+const nodemailer = require("nodemailer");
 
 const app = express();
 const server = http.createServer(app);

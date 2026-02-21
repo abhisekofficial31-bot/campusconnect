@@ -5,6 +5,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const multer = require("multer");
 const path = require("path");
+const nodemailer = require("nodemailer");
 
 const app = express();
 const server = http.createServer(app);
@@ -27,9 +28,28 @@ mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("✅ MongoDB Connected"))
     .catch(err => console.log("❌ Mongo Error:", err));
 
+/* ================= EMAIL SETUP ================= */
+
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
+
+// Verify transporter on startup
+transporter.verify((error, success) => {
+    if (error) {
+        console.log("❌ Email config error:", error);
+    } else {
+        console.log("✅ Email server ready");
+    }
+});
+
 /* ================= STATIC FILES ================= */
 
-// Serve frontend files (from parent folder)
+// Serve frontend files (parent folder)
 app.use(express.static(path.join(__dirname, "..")));
 
 // Serve uploaded images
@@ -85,7 +105,7 @@ io.on("connection", (socket) => {
 
 /* ================= ROUTES ================= */
 
-// Add Event
+// 🔥 Add Event + Send Email to All Users
 app.post("/add-event", upload.single("image"), async (req, res) => {
     try {
         const { title, date, time, location } = req.body;
@@ -99,13 +119,40 @@ app.post("/add-event", upload.single("image"), async (req, res) => {
         });
 
         await newEvent.save();
+        console.log("✅ Event saved");
+
+        // Fetch all users
+        const users = await User.find();
+        console.log("👥 Users found:", users.length);
+
+        if (users.length > 0) {
+            const emailPromises = users.map(user => {
+                console.log("📨 Sending to:", user.email);
+
+                return transporter.sendMail({
+                    from: process.env.EMAIL_USER,
+                    to: user.email,
+                    subject: `📢 New Event: ${title}`,
+                    html: `
+                        <h2>New Event Added 🎉</h2>
+                        <p><strong>${title}</strong></p>
+                        <p>Date: ${date}</p>
+                        <p>Time: ${time}</p>
+                        <p>Location: ${location}</p>
+                    `
+                });
+            });
+
+            await Promise.all(emailPromises);
+            console.log("✅ All emails sent");
+        }
 
         io.emit("newNotification", `📢 New Event Added: ${title}`);
 
-        res.json({ message: "Event added successfully" });
+        res.json({ message: "Event added & emails sent successfully" });
 
     } catch (err) {
-        console.log("ADD EVENT ERROR:", err);
+        console.log("❌ ADD EVENT ERROR:", err);
         res.status(500).json({ message: "Error adding event" });
     }
 });
@@ -118,71 +165,6 @@ app.get("/events", async (req, res) => {
     } catch (err) {
         console.log("GET EVENTS ERROR:", err);
         res.status(500).json({ message: "Error fetching events" });
-    }
-});
-
-// Update Event
-app.put("/update-event/:id", async (req, res) => {
-    try {
-        const { title, date, time, location } = req.body;
-
-        await Event.findByIdAndUpdate(req.params.id, {
-            title,
-            date,
-            time,
-            location
-        });
-
-        res.json({ message: "Event updated successfully" });
-
-    } catch (err) {
-        console.log("UPDATE ERROR:", err);
-        res.status(500).json({ message: "Update error" });
-    }
-});
-
-// Delete Event
-app.delete("/delete-event/:id", async (req, res) => {
-    try {
-        await Event.findByIdAndDelete(req.params.id);
-        await Registration.deleteMany({ eventId: req.params.id });
-
-        res.json({ message: "Event deleted successfully" });
-
-    } catch (err) {
-        console.log("DELETE ERROR:", err);
-        res.status(500).json({ message: "Delete error" });
-    }
-});
-
-// Register Event
-app.post("/register-event", async (req, res) => {
-    try {
-        const { eventId, eventTitle, userEmail, userName } = req.body;
-
-        const alreadyRegistered = await Registration.findOne({
-            eventId,
-            userEmail
-        });
-
-        if (alreadyRegistered) {
-            return res.json({ message: "Already registered" });
-        }
-
-        const newRegistration = new Registration({
-            eventId,
-            eventTitle,
-            userEmail,
-            userName
-        });
-
-        await newRegistration.save();
-
-        res.json({ message: "Registration successful" });
-
-    } catch (err) {
-        console.log("REGISTER ERROR:", err);
-        res.status(500).json({ message: "Registration error" });
     }
 });
 

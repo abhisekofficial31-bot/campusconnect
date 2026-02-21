@@ -7,12 +7,17 @@ const multer = require("multer");
 const path = require("path");
 const nodemailer = require("nodemailer");
 
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+
 const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: { origin: "*" }
 });
+
+/* ================= MIDDLEWARE ================= */
 
 app.use(cors());
 app.use(express.json());
@@ -24,6 +29,24 @@ mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("✅ MongoDB Connected"))
     .catch(err => console.log("❌ Mongo Error:", err));
 
+/* ================= CLOUDINARY CONFIG ================= */
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: "campusconnect",
+        allowed_formats: ["jpg", "png", "jpeg"]
+    }
+});
+
+const upload = multer({ storage });
+
 /* ================= EMAIL ================= */
 
 const transporter = nodemailer.createTransport({
@@ -33,8 +56,7 @@ const transporter = nodemailer.createTransport({
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-    },
-    tls: { rejectUnauthorized: false }
+    }
 });
 
 transporter.verify()
@@ -44,21 +66,10 @@ transporter.verify()
 /* ================= STATIC ================= */
 
 app.use(express.static(path.join(__dirname, "..")));
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "..", "index.html"));
 });
-
-/* ================= MULTER ================= */
-
-const storage = multer.diskStorage({
-    destination: path.join(__dirname, "uploads"),
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
-    }
-});
-const upload = multer({ storage });
 
 /* ================= SCHEMAS ================= */
 
@@ -80,7 +91,8 @@ const Event = mongoose.model("Event", eventSchema);
 
 /* ================= ROUTES ================= */
 
-// ADD EVENT
+/* ===== ADD EVENT ===== */
+
 app.post("/add-event", upload.single("image"), async (req, res) => {
     try {
         const { title, date, time, location } = req.body;
@@ -90,10 +102,12 @@ app.post("/add-event", upload.single("image"), async (req, res) => {
             date,
             time,
             location,
-            image: req.file ? "/uploads/" + req.file.filename : ""
+            image: req.file ? req.file.path : ""
         });
 
         await newEvent.save();
+
+        io.emit("newNotification", `📢 New Event Added: ${title}`);
 
         res.json({ message: "Event added successfully" });
 
@@ -103,24 +117,32 @@ app.post("/add-event", upload.single("image"), async (req, res) => {
     }
 });
 
-// GET EVENTS
+/* ===== GET EVENTS ===== */
+
 app.get("/events", async (req, res) => {
-    const events = await Event.find().sort({ _id: -1 });
-    res.json(events);
+    try {
+        const events = await Event.find().sort({ _id: -1 });
+        res.json(events);
+    } catch (err) {
+        console.log("GET EVENTS ERROR:", err);
+        res.status(500).json({ message: "Error fetching events" });
+    }
 });
 
-// DELETE EVENT
+/* ===== DELETE EVENT ===== */
+
 app.delete("/delete-event/:id", async (req, res) => {
     try {
         await Event.findByIdAndDelete(req.params.id);
-        res.json({ message: "Event deleted" });
+        res.json({ message: "Event deleted successfully" });
     } catch (err) {
         console.log("DELETE ERROR:", err);
         res.status(500).json({ message: "Delete error" });
     }
 });
 
-// SEND NOTIFICATION
+/* ===== SEND NOTIFICATION ===== */
+
 app.post("/send-notification/:id", async (req, res) => {
     try {
         const event = await Event.findById(req.params.id);
@@ -137,9 +159,10 @@ app.post("/send-notification/:id", async (req, res) => {
                     subject: `📢 New Event: ${event.title}`,
                     html: `
                         <h2>${event.title}</h2>
-                        <p>Date: ${event.date}</p>
-                        <p>Time: ${event.time}</p>
-                        <p>Location: ${event.location}</p>
+                        <p><strong>Date:</strong> ${event.date}</p>
+                        <p><strong>Time:</strong> ${event.time}</p>
+                        <p><strong>Location:</strong> ${event.location}</p>
+                        ${event.image ? `<img src="${event.image}" width="300"/>` : ""}
                     `
                 })
             )

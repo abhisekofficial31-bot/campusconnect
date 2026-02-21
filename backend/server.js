@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
-const multer = require("multer");
+//const multer = require("multer");
 const path = require("path");
 const nodemailer = require("nodemailer");
 

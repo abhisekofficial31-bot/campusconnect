@@ -8,22 +8,15 @@
 
 <body>
 
-<!-- 🔐 LOGIN CHECK -->
 <script>
 if (!localStorage.getItem("email")) {
     window.location.href = "signin.html";
 }
 </script>
 
-<!-- ================= NAVBAR ================= -->
 <nav class="navbar">
-
-    <!-- 👤 PROFILE ICON -->
     <div class="profile-container">
-        <div class="profile-icon" onclick="toggleProfileMenu()">
-            👤
-        </div>
-
+        <div class="profile-icon" onclick="toggleProfileMenu()">👤</div>
         <div class="profile-dropdown" id="profileDropdown">
             <p id="dropdownName"></p>
             <p id="dropdownEmail" style="font-size:12px;color:gray;"></p>
@@ -39,27 +32,23 @@ if (!localStorage.getItem("email")) {
         <a href="admin.html" id="adminLink">Admin Panel</a>
         <button onclick="toggleDarkMode()">🌙</button>
     </div>
-
 </nav>
 
-<!-- ================= HERO ================= -->
 <section class="hero">
     <h1>Discover Your Campus <span>Experiences</span></h1>
     <p>From hackathons to cultural festivals and workshops.</p>
     <input type="text" placeholder="Search events..." class="search" onkeyup="filterEvents(this.value)">
 </section>
 
-<!-- ================= EVENTS ================= -->
-<section class="events" id="eventsContainer"></section>
+<section class="events" id="eventsContainer">
+    <p style="text-align:center;">Loading events...</p>
+</section>
 
-<!-- ================= EVENT DETAIL MODAL ================= -->
 <div id="eventDetailModal" class="modal">
     <div class="modal-content" style="max-width:600px">
         <span class="close" onclick="closeDetailModal()">&times;</span>
-
         <img id="detailImage"
              style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;margin-bottom:15px;">
-
         <h3 id="detailTitle"></h3>
         <p id="detailDate"></p>
         <p id="detailTime"></p>
@@ -67,18 +56,12 @@ if (!localStorage.getItem("email")) {
     </div>
 </div>
 
-<!-- ================= SOCKET ================= -->
-<script src="https://campusconnect-wasv.onrender.com/socket.io/socket.io.js"></script>
-
 <script>
 document.addEventListener("DOMContentLoaded", function() {
 
     const API = "https://campusconnect-wasv.onrender.com";
     const ADMIN_EMAIL = "abhisekofficial31@gmail.com";
-
     let allEvents = [];
-
-    /* ================= USER INFO ================= */
 
     const userName = localStorage.getItem("name");
     const userEmail = localStorage.getItem("email");
@@ -88,79 +71,91 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById("dropdownEmail").innerText = userEmail;
     }
 
-    /* Hide admin link if not admin */
     if (userEmail !== ADMIN_EMAIL) {
         document.getElementById("adminLink").style.display = "none";
     }
 
-    /* ================= LOAD EVENTS ================= */
-
     async function loadEvents() {
-        const res = await fetch(`${API}/events`);
-        const events = await res.json();
-        allEvents = events;
-        displayEvents(events);
-    }
+        try {
+            console.log("Fetching events from:", API + "/events");
 
-    /* ================= DISPLAY EVENTS ================= */
+            const response = await fetch(API + "/events");
+
+            if (!response.ok) {
+                throw new Error("Server error: " + response.status);
+            }
+
+            const data = await response.json();
+
+            console.log("Events received:", data);
+
+            allEvents = data;
+            displayEvents(data);
+
+        } catch (error) {
+            console.error("Fetch error:", error);
+            document.getElementById("eventsContainer").innerHTML =
+                "<p style='text-align:center;color:red;'>Unable to load events. Refresh page.</p>";
+        }
+    }
 
     function displayEvents(events) {
 
         const container = document.getElementById("eventsContainer");
         container.innerHTML = "";
 
-        if (events.length === 0) {
-            container.innerHTML = "<p style='text-align:center;'>No events available</p>";
+        if (!events || events.length === 0) {
+            container.innerHTML =
+                "<p style='text-align:center;'>No events available</p>";
             return;
         }
 
         events.forEach(event => {
-            container.innerHTML += `
-                <div class="card">
-                    ${event.image ?
-                        `<img src="${API}${event.image}"
-                         onclick="openDetailModal(
-                            '${API}${event.image}',
-                            '${event.title}',
-                            '${event.date}',
-                            '${event.time}',
-                            '${event.location}'
-                         )">`
-                        :
-                        `<img src="https://via.placeholder.com/400x400?text=No+Image">`
-                    }
-                    <div class="card-content">
-                        <h3>${event.title}</h3>
-                        <p>📅 ${event.date}</p>
-                        <p>⏰ ${event.time}</p>
-                        <p>📍 ${event.location}</p>
 
-                        <button class="register-btn"
-                            onclick="registerEvent('${event.title}')">
-                            Register Now
-                        </button>
-                    </div>
+            const imageUrl = event.image
+                ? API + event.image
+                : "https://via.placeholder.com/400x400?text=No+Image";
+
+            const card = document.createElement("div");
+            card.className = "card";
+
+            card.innerHTML = `
+                <img src="${imageUrl}"
+                     onclick="openDetailModal(
+                        '${imageUrl}',
+                        '${event.title}',
+                        '${event.date}',
+                        '${event.time}',
+                        '${event.location}'
+                     )">
+
+                <div class="card-content">
+                    <h3>${event.title}</h3>
+                    <p>📅 ${event.date}</p>
+                    <p>⏰ ${event.time}</p>
+                    <p>📍 ${event.location}</p>
+
+                    <button class="register-btn"
+                        onclick="registerEvent('${event.title}')">
+                        Register Now
+                    </button>
                 </div>
             `;
+
+            container.appendChild(card);
         });
     }
 
-    /* ================= REGISTER FUNCTION ================= */
-
     window.registerEvent = function(eventName) {
         alert("Registered for: " + eventName);
-    }
-
-    /* ================= FILTER ================= */
+    };
 
     window.filterEvents = function(value) {
         const filtered = allEvents.filter(event =>
             event.title.toLowerCase().includes(value.toLowerCase())
         );
         displayEvents(filtered);
-    }
-
-    /* ================= DETAIL MODAL ================= */
+    };
 
     window.openDetailModal = function(image, title, date, time, location) {
         document.getElementById("detailImage").src = image;
@@ -169,44 +164,32 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById("detailTime").innerText = "⏰ " + time;
         document.getElementById("detailLocation").innerText = "📍 " + location;
         document.getElementById("eventDetailModal").style.display = "flex";
-    }
+    };
 
     window.closeDetailModal = function() {
         document.getElementById("eventDetailModal").style.display = "none";
-    }
-
-    /* ================= PROFILE MENU ================= */
+    };
 
     window.toggleProfileMenu = function() {
         const menu = document.getElementById("profileDropdown");
-        menu.style.display = menu.style.display === "block" ? "none" : "block";
-    }
+        menu.style.display =
+            menu.style.display === "block" ? "none" : "block";
+    };
 
     window.onclick = function(event) {
         if (!event.target.closest(".profile-container")) {
             document.getElementById("profileDropdown").style.display = "none";
         }
-    }
-
-    /* ================= LOGOUT ================= */
+    };
 
     window.logout = function() {
         localStorage.clear();
         window.location.href = "signin.html";
-    }
-
-    /* ================= DARK MODE ================= */
+    };
 
     window.toggleDarkMode = function() {
         document.body.classList.toggle("dark-mode");
-    }
-
-    /* ================= SOCKET ================= */
-
-    const socket = io(API);
-    socket.on("newNotification", (message) => {
-        alert(message);
-    });
+    };
 
     loadEvents();
 });

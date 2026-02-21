@@ -1,150 +1,121 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Admin Panel</title>
 </head>
 <body>
 
-<!-- 🔒 ADMIN PROTECTION -->
-<script>
-const ADMIN_EMAIL = "abhisekofficial31@gmail.com";
-const currentUser = localStorage.getItem("email");
+<h2>Add Event</h2>
 
-if (currentUser !== ADMIN_EMAIL) {
-    window.location.href = "index.html";
-}
-</script>
+<form id="eventForm" enctype="multipart/form-data">
+    <input type="text" name="title" placeholder="Title" required><br><br>
+    <input type="date" name="date" required><br><br>
+    <input type="time" name="time" required><br><br>
+    <input type="text" name="location" placeholder="Location" required><br><br>
+    <input type="file" name="image"><br><br>
+    <button type="submit" id="addBtn">Add Event</button>
+</form>
 
-<nav class="navbar">
-    <div class="logo">🎓 CampusConnect</div>
-    <div class="nav-links">
-        <a href="index.html">Events</a>
-        <a href="registrations.html">My Registrations</a>
-        <a class="active" href="admin.html">Admin Panel</a>
-    </div>
-</nav>
+<hr>
 
-<section class="admin-section">
-
-    <h2>Admin Dashboard</h2>
-    <p>Manage events and track registrations.</p>
-
-    <!-- ================= ADD EVENT ================= -->
-
-    <div class="table-section">
-        <h3>Add New Event</h3>
-
-        <input type="text" id="title" placeholder="Event Title" required>
-        <input type="date" id="date" required>
-        <input type="time" id="time" required>
-        <input type="text" id="location" placeholder="Location" required>
-        <input type="file" id="image" accept="image/*">
-
-        <button onclick="addEvent()">Add Event</button>
-    </div>
-
-    <br>
-
-    <!-- ================= EVENTS LIST ================= -->
-
-    <div class="table-section">
-        <h3>All Events</h3>
-        <div id="eventList"></div>
-    </div>
-
-    <br>
-
-    <!-- ================= STATS ================= -->
-
-    <div class="stats">
-        <div class="stat-card">
-            <h4>Total Events</h4>
-            <h2 id="totalEvents">0</h2>
-        </div>
-    </div>
-
-</section>
+<h2>All Events</h2>
+<div id="events"></div>
 
 <script>
+document.addEventListener("DOMContentLoaded", function () {
 
-const API = "https://campusconnect-wasv.onrender.com";  // 🔥 LIVE URL
+    // 🔥 IMPORTANT: Backend URL
+    const API = "https://campusconnect-wasv.onrender.com";
 
-/* ================= ADD EVENT ================= */
+    const container = document.getElementById("events");
+    const form = document.getElementById("eventForm");
+    const addBtn = document.getElementById("addBtn");
 
-async function addEvent() {
+    async function loadEvents() {
+        container.innerHTML = "Loading...";
+        const res = await fetch(`${API}/events`);
+        const events = await res.json();
 
-    const formData = new FormData();
+        container.innerHTML = "";
 
-    formData.append("title", document.getElementById("title").value);
-    formData.append("date", document.getElementById("date").value);
-    formData.append("time", document.getElementById("time").value);
-    formData.append("location", document.getElementById("location").value);
+        events.forEach(event => {
+            const div = document.createElement("div");
+            div.style.border = "1px solid #ccc";
+            div.style.padding = "10px";
+            div.style.margin = "10px";
+            div.id = event._id;
 
-    const imageFile = document.getElementById("image").files[0];
-    if (imageFile) {
-        formData.append("image", imageFile);
+            div.innerHTML = `
+                <h3>${event.title}</h3>
+                <p>${event.date} - ${event.time}</p>
+                <p>${event.location}</p>
+                <button class="delete-btn">Delete</button>
+                <button class="mail-btn">Send Notification</button>
+            `;
+
+            // Delete Button
+            div.querySelector(".delete-btn").addEventListener("click", async () => {
+                div.style.opacity = "0.5";
+
+                const res = await fetch(`${API}/delete-event/${event._id}`, {
+                    method: "DELETE"
+                });
+
+                if (res.ok) {
+                    div.remove();
+                } else {
+                    alert("Delete failed");
+                    div.style.opacity = "1";
+                }
+            });
+
+            // Send Notification Button
+            div.querySelector(".mail-btn").addEventListener("click", async () => {
+                const btn = div.querySelector(".mail-btn");
+                btn.innerText = "Sending...";
+                btn.disabled = true;
+
+                const res = await fetch(`${API}/send-notification/${event._id}`, {
+                    method: "POST"
+                });
+
+                const data = await res.json();
+                alert(data.message);
+
+                btn.innerText = "Send Notification";
+                btn.disabled = false;
+            });
+
+            container.appendChild(div);
+        });
     }
 
-    const res = await fetch(API + "/add-event", {
-        method: "POST",
-        body: formData
-    });
+    // Add Event
+    form.addEventListener("submit", async function (e) {
+        e.preventDefault();
 
-    const data = await res.json();
-    alert(data.message);
+        const formData = new FormData(form);
 
-    document.getElementById("title").value = "";
-    document.getElementById("date").value = "";
-    document.getElementById("time").value = "";
-    document.getElementById("location").value = "";
-    document.getElementById("image").value = "";
+        addBtn.innerText = "Adding...";
+        addBtn.disabled = true;
 
-    loadEvents();
-}
+        const res = await fetch(`${API}/add-event`, {
+            method: "POST",
+            body: formData
+        });
 
-/* ================= LOAD EVENTS ================= */
+        const data = await res.json();
+        alert(data.message);
 
-async function loadEvents() {
+        addBtn.innerText = "Add Event";
+        addBtn.disabled = false;
 
-    const res = await fetch(API + "/events");
-    const events = await res.json();
-
-    const container = document.getElementById("eventList");
-    container.innerHTML = "";
-
-    document.getElementById("totalEvents").innerText = events.length;
-
-    events.forEach(event => {
-
-        container.innerHTML += `
-            <div style="margin-bottom:15px;padding:15px;border:1px solid #ddd;border-radius:10px;">
-                ${event.image ? 
-                    `<img src="${API}${event.image}" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-bottom:10px;">`
-                    : ""
-                }
-                <h4>${event.title}</h4>
-                <p>📅 ${event.date} | ⏰ ${event.time}</p>
-                <p>📍 ${event.location}</p>
-                <button onclick="deleteEvent('${event._id}')">Delete</button>
-            </div>
-        `;
-    });
-}
-
-/* ================= DELETE EVENT ================= */
-
-async function deleteEvent(id) {
-
-    await fetch(API + "/delete-event/" + id, {
-        method: "DELETE"
+        form.reset();
+        loadEvents();
     });
 
     loadEvents();
-}
-
-loadEvents();
-
+});
 </script>
 
 </body>

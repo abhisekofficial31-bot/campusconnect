@@ -10,13 +10,9 @@ const nodemailer = require("nodemailer");
 const app = express();
 const server = http.createServer(app);
 
-/* ================= SOCKET.IO ================= */
-
 const io = new Server(server, {
     cors: { origin: "*" }
 });
-
-/* ================= MIDDLEWARE ================= */
 
 app.use(cors());
 app.use(express.json());
@@ -28,34 +24,27 @@ mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("✅ MongoDB Connected"))
     .catch(err => console.log("❌ Mongo Error:", err));
 
-/* ================= EMAIL SETUP ================= */
+/* ================= EMAIL ================= */
 
 const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-    }
+    },
+    tls: { rejectUnauthorized: false }
 });
 
-// Verify transporter on startup
-transporter.verify((error, success) => {
-    if (error) {
-        console.log("❌ Email config error:", error);
-    } else {
-        console.log("✅ Email server ready");
-    }
-});
+transporter.verify()
+    .then(() => console.log("✅ Email ready"))
+    .catch(err => console.log("❌ Email error:", err));
 
-/* ================= STATIC FILES ================= */
+/* ================= STATIC ================= */
 
-// Serve frontend files (parent folder)
 app.use(express.static(path.join(__dirname, "..")));
-
-// Serve uploaded images
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-/* ================= ROOT ROUTE ================= */
 
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "..", "index.html"));
@@ -89,23 +78,9 @@ const eventSchema = new mongoose.Schema({
 });
 const Event = mongoose.model("Event", eventSchema);
 
-const registrationSchema = new mongoose.Schema({
-    eventId: String,
-    eventTitle: String,
-    userEmail: String,
-    userName: String
-});
-const Registration = mongoose.model("Registration", registrationSchema);
-
-/* ================= SOCKET CONNECTION ================= */
-
-io.on("connection", (socket) => {
-    console.log("User Connected:", socket.id);
-});
-
 /* ================= ROUTES ================= */
 
-// 🔥 Add Event + Send Email to All Users
+// ADD EVENT
 app.post("/add-event", upload.single("image"), async (req, res) => {
     try {
         const { title, date, time, location } = req.body;
@@ -119,98 +94,62 @@ app.post("/add-event", upload.single("image"), async (req, res) => {
         });
 
         await newEvent.save();
-        console.log("✅ Event saved");
 
-        // Fetch all users
-        const users = await User.find();
-        console.log("👥 Users found:", users.length);
-
-        if (users.length > 0) {
-            const emailPromises = users.map(user => {
-                console.log("📨 Sending to:", user.email);
-
-                return transporter.sendMail({
-                    from: process.env.EMAIL_USER,
-                    to: user.email,
-                    subject: `📢 New Event: ${title}`,
-                    html: `
-                        <h2>New Event Added 🎉</h2>
-                        <p><strong>${title}</strong></p>
-                        <p>Date: ${date}</p>
-                        <p>Time: ${time}</p>
-                        <p>Location: ${location}</p>
-                    `
-                });
-            });
-
-            await Promise.all(emailPromises);
-            console.log("✅ All emails sent");
-        }
-
-        io.emit("newNotification", `📢 New Event Added: ${title}`);
-
-        res.json({ message: "Event added & emails sent successfully" });
+        res.json({ message: "Event added successfully" });
 
     } catch (err) {
-        console.log("❌ ADD EVENT ERROR:", err);
+        console.log("ADD EVENT ERROR:", err);
         res.status(500).json({ message: "Error adding event" });
     }
 });
 
-// Get Events
+// GET EVENTS
 app.get("/events", async (req, res) => {
+    const events = await Event.find().sort({ _id: -1 });
+    res.json(events);
+});
+
+// DELETE EVENT
+app.delete("/delete-event/:id", async (req, res) => {
     try {
-        const events = await Event.find().sort({ _id: -1 });
-        res.json(events);
+        await Event.findByIdAndDelete(req.params.id);
+        res.json({ message: "Event deleted" });
     } catch (err) {
-        console.log("GET EVENTS ERROR:", err);
-        res.status(500).json({ message: "Error fetching events" });
+        console.log("DELETE ERROR:", err);
+        res.status(500).json({ message: "Delete error" });
     }
 });
 
-// Signup
-app.post("/signup", async (req, res) => {
+// SEND NOTIFICATION
+app.post("/send-notification/:id", async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const event = await Event.findById(req.params.id);
+        const users = await User.find();
 
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.json({ message: "User already exists" });
-        }
+        if (!event) return res.json({ message: "Event not found" });
+        if (users.length === 0) return res.json({ message: "No users found" });
 
-        const newUser = new User({ name, email, password });
-        await newUser.save();
+        await Promise.all(
+            users.map(user =>
+                transporter.sendMail({
+                    from: process.env.EMAIL_USER,
+                    to: user.email,
+                    subject: `📢 New Event: ${event.title}`,
+                    html: `
+                        <h2>${event.title}</h2>
+                        <p>Date: ${event.date}</p>
+                        <p>Time: ${event.time}</p>
+                        <p>Location: ${event.location}</p>
+                    `
+                })
+            )
+        );
 
-        res.json({ message: "Signup successful" });
+        res.json({ message: "Emails sent successfully" });
 
     } catch (err) {
-        console.log("SIGNUP ERROR:", err);
-        res.status(500).json({ message: "Signup error" });
-    }
-});
-
-// Signin
-app.post("/signin", async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        const user = await User.findOne({ email, password });
-
-        if (!user) {
-            return res.json({ message: "Invalid credentials" });
-        }
-
-        const isAdmin = email === process.env.ADMIN_EMAIL;
-
-        res.json({
-            message: "Login successful",
-            user,
-            isAdmin
-        });
-
-    } catch (err) {
-        console.log("LOGIN ERROR:", err);
-        res.status(500).json({ message: "Login error" });
+        console.log("EMAIL ERROR:", err);
+        res.status(500).json({ message: "Email sending failed" });
     }
 });
 

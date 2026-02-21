@@ -3,12 +3,15 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
-//const multer = require("multer");
 const path = require("path");
-const nodemailer = require("nodemailer");
 
+// ✅ Required for Cloudinary upload
+const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
+
+// ❌ Email abhi disable kar rahe hain (baad me add karenge)
+// const nodemailer = require("nodemailer");
 
 const app = express();
 const server = http.createServer(app);

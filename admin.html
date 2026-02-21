@@ -17,10 +17,6 @@
             margin-bottom: 30px;
         }
 
-        .top-bar h2 {
-            margin: 0;
-        }
-
         .back-btn {
             padding: 8px 15px;
             background: #4f46e5;
@@ -64,9 +60,10 @@
             color: white;
         }
 
-        .notify-btn {
-            background: #10b981;
-            color: white;
+        img {
+            margin-top: 10px;
+            max-width: 250px;
+            border-radius: 6px;
         }
     </style>
 </head>
@@ -80,12 +77,12 @@
 
 <div class="card">
     <h3>Add Event</h3>
-    <form id="eventForm">
+    <form id="eventForm" enctype="multipart/form-data">
         <input type="text" name="title" placeholder="Title" required><br>
         <input type="date" name="date" required><br>
         <input type="time" name="time" required><br>
         <input type="text" name="location" placeholder="Location" required><br>
-        <input type="file" name="image"><br>
+        <input type="file" name="image" accept="image/*"><br>
         <button type="submit">Add Event</button>
     </form>
 </div>
@@ -94,6 +91,7 @@
 <div id="eventsContainer"></div>
 
 <script>
+
 const API = "https://campusconnect-wasv.onrender.com";
 
 function goBack() {
@@ -101,60 +99,85 @@ function goBack() {
 }
 
 async function loadEvents() {
-    const res = await fetch(`${API}/events`);
-    const events = await res.json();
+    try {
+        const res = await fetch(`${API}/events`);
+        const events = await res.json();
 
-    const container = document.getElementById("eventsContainer");
-    container.innerHTML = "";
+        const container = document.getElementById("eventsContainer");
+        container.innerHTML = "";
 
-    events.forEach(event => {
-        container.innerHTML += `
-            <div class="event-card">
-                <h4>${event.title}</h4>
-                <p>${event.date} - ${event.time}</p>
-                <p>${event.location}</p>
+        events.forEach(event => {
+            container.innerHTML += `
+                <div class="event-card">
+                    <h4>${event.title}</h4>
+                    <p>${event.date} - ${event.time}</p>
+                    <p>${event.location}</p>
+                    ${event.image ? `<img src="${event.image}" alt="Event Image">` : ""}
 
-                <div class="event-actions">
-                    <button class="delete-btn"
-                        onclick="deleteEvent('${event._id}')">
-                        Delete
-                    </button>
+                    <div class="event-actions">
+                        <button class="delete-btn"
+                            onclick="deleteEvent('${event._id}')">
+                            Delete
+                        </button>
+                    </div>
                 </div>
-            </div>
-        `;
-    });
+            `;
+        });
+
+    } catch (err) {
+        console.error("Load error:", err);
+        alert("Failed to load events");
+    }
 }
 
 async function deleteEvent(id) {
     if (!confirm("Delete this event?")) return;
 
-    const res = await fetch(`${API}/delete-event/${id}`, {
-        method: "DELETE"
-    });
+    try {
+        const res = await fetch(`${API}/delete-event/${id}`, {
+            method: "DELETE"
+        });
 
-    const data = await res.json();
-    alert(data.message);
-    loadEvents();
+        const data = await res.json();
+        alert(data.message);
+        loadEvents();
+
+    } catch (err) {
+        console.error("Delete error:", err);
+        alert("Delete failed");
+    }
 }
 
 document.getElementById("eventForm")
 .addEventListener("submit", async function(e) {
     e.preventDefault();
 
-    const formData = new FormData(this);
+    try {
+        const formData = new FormData(this);
 
-    const res = await fetch(`${API}/add-event`, {
-        method: "POST",
-        body: formData
-    });
+        const res = await fetch(`${API}/add-event`, {
+            method: "POST",
+            body: formData
+        });
 
-    const data = await res.json();
-    alert(data.message);
-    this.reset();
-    loadEvents();
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || "Failed");
+        }
+
+        alert(data.message);
+        this.reset();
+        loadEvents();
+
+    } catch (err) {
+        console.error("Add error:", err);
+        alert("Failed to add event");
+    }
 });
 
 loadEvents();
+
 </script>
 
 </body>

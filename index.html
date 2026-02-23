@@ -3,105 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <title>CampusConnect</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<script>
-if (!localStorage.getItem("email")) {
-    window.location.href = "signin.html";
-}
-</script>
-
+<!-- ================= NAVBAR ================= -->
 <nav class="navbar">
-    <div class="profile-container">
-        <div class="profile-icon" onclick="toggleProfileMenu()">👤</div>
-        <div class="profile-dropdown" id="profileDropdown">
-            <p id="dropdownName"></p>
-            <p id="dropdownEmail" style="font-size:12px;color:gray;"></p>
-            <button onclick="logout()">Logout</button>
-        </div>
+    <div class="nav-left">
+        🎓 <span class="logo-text">CampusConnect</span>
     </div>
 
-    <div class="logo">🎓 CampusConnect</div>
-
-    <div class="nav-links">
-        <a href="index.html" class="active">Events</a>
-        <a href="registrations.html">My Registrations</a>
-        <a href="admin.html" id="adminLink">Admin Panel</a>
-        <button onclick="toggleDarkMode()">🌙</button>
+    <div class="nav-right">
+        <a href="#" class="nav-link active">Events</a>
+        <a href="#" class="nav-link">My Registrations</a>
+        <a href="admin.html" id="adminLink" class="nav-link">Admin Panel</a>
+        <button onclick="toggleDarkMode()" class="dark-toggle">🌙</button>
     </div>
 </nav>
 
+<!-- ================= HERO ================= -->
 <section class="hero">
-    <h1>Discover Your Campus <span>Experiences</span></h1>
-    <p>From hackathons to cultural festivals and workshops.</p>
-    <input type="text" placeholder="Search events..." class="search" onkeyup="filterEvents(this.value)">
+    <h1>
+        Discover Your Campus 
+        <span class="highlight">Experiences</span>
+    </h1>
+
+    <p>
+        From hackathons to cultural festivals and workshops.
+    </p>
+
+    <div class="search-wrapper">
+        <input type="text"
+               class="modern-search"
+               placeholder="🔍 Search events..."
+               onkeyup="filterEvents(this.value)">
+    </div>
 </section>
 
-<section class="events" id="eventsContainer">
-    <p style="text-align:center;">Loading events...</p>
+<!-- ================= EVENTS ================= -->
+<section class="events-section">
+    <div id="eventsContainer" class="events-grid"></div>
 </section>
 
+<!-- ================= MODAL ================= -->
 <div id="eventDetailModal" class="modal">
-    <div class="modal-content" style="max-width:600px">
-        <span class="close" onclick="closeDetailModal()">&times;</span>
-        <img id="detailImage"
-             style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;margin-bottom:15px;">
+    <div class="modal-content">
+        <img id="detailImage">
         <h3 id="detailTitle"></h3>
         <p id="detailDate"></p>
         <p id="detailTime"></p>
         <p id="detailLocation"></p>
+        <button onclick="closeDetailModal()">Close</button>
     </div>
 </div>
 
+<!-- ================= SCRIPT ================= -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
 
-    const API = "https://campusconnect-wasv.onrender.com";
+    const API = "http://localhost:5000";
     const ADMIN_EMAIL = "abhisekofficial31@gmail.com";
+
     let allEvents = [];
+    const container = document.getElementById("eventsContainer");
 
-    const userName = localStorage.getItem("name");
     const userEmail = localStorage.getItem("email");
+    const userName = localStorage.getItem("name");
 
-    if (userName && userEmail) {
-        document.getElementById("dropdownName").innerText = "👤 " + userName;
-        document.getElementById("dropdownEmail").innerText = userEmail;
-    }
-
+    /* Hide Admin Panel for non-admin */
     if (userEmail !== ADMIN_EMAIL) {
         document.getElementById("adminLink").style.display = "none";
     }
 
+    /* Load Events */
     async function loadEvents() {
         try {
-            console.log("Fetching events from:", API + "/events");
-
             const response = await fetch(API + "/events");
-
-            if (!response.ok) {
-                throw new Error("Server error: " + response.status);
-            }
-
             const data = await response.json();
-
-            console.log("Events received:", data);
-
             allEvents = data;
             displayEvents(data);
-
         } catch (error) {
-            console.error("Fetch error:", error);
-            document.getElementById("eventsContainer").innerHTML =
-                "<p style='text-align:center;color:red;'>Unable to load events. Refresh page.</p>";
+            container.innerHTML =
+                "<p style='text-align:center;color:red;'>Unable to load events.</p>";
         }
     }
 
+    /* Display Events */
     function displayEvents(events) {
-
-        const container = document.getElementById("eventsContainer");
         container.innerHTML = "";
 
         if (!events || events.length === 0) {
@@ -120,7 +110,7 @@ document.addEventListener("DOMContentLoaded", function() {
             card.className = "card";
 
             card.innerHTML = `
-                <img src="${imageUrl}"
+                <img src="${imageUrl}" 
                      onclick="openDetailModal(
                         '${imageUrl}',
                         '${event.title}',
@@ -136,7 +126,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     <p>📍 ${event.location}</p>
 
                     <button class="register-btn"
-                        onclick="registerEvent('${event.title}')">
+                        onclick="handleRegister('${event._id}', '${event.externalLink || ""}')">
                         Register Now
                     </button>
                 </div>
@@ -146,10 +136,34 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    window.registerEvent = function(eventName) {
-        alert("Registered for: " + eventName);
+    /* Smart Register Logic */
+    window.handleRegister = function(eventId, link) {
+
+        if (link && link.trim() !== "") {
+            // External registration
+            window.open(link, "_blank");
+        } else {
+            // Local registration
+            if (!userEmail || !userName) {
+                alert("Please login first.");
+                return;
+            }
+
+            fetch(API + "/register/" + eventId, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: userName,
+                    email: userEmail
+                })
+            })
+            .then(res => res.json())
+            .then(data => alert(data.message))
+            .catch(() => alert("Registration failed"));
+        }
     };
 
+    /* Search */
     window.filterEvents = function(value) {
         const filtered = allEvents.filter(event =>
             event.title.toLowerCase().includes(value.toLowerCase())
@@ -157,6 +171,7 @@ document.addEventListener("DOMContentLoaded", function() {
         displayEvents(filtered);
     };
 
+    /* Modal */
     window.openDetailModal = function(image, title, date, time, location) {
         document.getElementById("detailImage").src = image;
         document.getElementById("detailTitle").innerText = title;
@@ -168,23 +183,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     window.closeDetailModal = function() {
         document.getElementById("eventDetailModal").style.display = "none";
-    };
-
-    window.toggleProfileMenu = function() {
-        const menu = document.getElementById("profileDropdown");
-        menu.style.display =
-            menu.style.display === "block" ? "none" : "block";
-    };
-
-    window.onclick = function(event) {
-        if (!event.target.closest(".profile-container")) {
-            document.getElementById("profileDropdown").style.display = "none";
-        }
-    };
-
-    window.logout = function() {
-        localStorage.clear();
-        window.location.href = "signin.html";
     };
 
     window.toggleDarkMode = function() {

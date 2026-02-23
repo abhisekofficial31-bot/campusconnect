@@ -3,6 +3,7 @@
 <head>
     <title>Admin Panel - CampusConnect</title>
     <link rel="stylesheet" href="style.css">
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -34,9 +35,14 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.08);
         }
 
-        input, button {
+        input, textarea, button {
             padding: 8px;
             margin: 5px 0;
+            width: 100%;
+        }
+
+        textarea {
+            resize: vertical;
         }
 
         .event-card {
@@ -47,12 +53,14 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
+        .event-actions {
+            margin-top: 10px;
+        }
+
         .event-actions button {
+            width: auto;
             margin-right: 10px;
-            padding: 6px 12px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
+            margin-top: 5px;
         }
 
         .delete-btn {
@@ -60,10 +68,30 @@
             color: white;
         }
 
+        .bell-btn {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .pdf-btn {
+            background: #10b981;
+            color: white;
+        }
+
         img {
             margin-top: 10px;
             max-width: 250px;
             border-radius: 6px;
+        }
+
+        .count-badge {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #4f46e5;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -78,11 +106,16 @@
 <div class="card">
     <h3>Add Event</h3>
     <form id="eventForm" enctype="multipart/form-data">
-        <input type="text" name="title" placeholder="Title" required><br>
-        <input type="date" name="date" required><br>
-        <input type="time" name="time" required><br>
-        <input type="text" name="location" placeholder="Location" required><br>
-        <input type="file" name="image" accept="image/*"><br>
+        <input type="text" name="title" placeholder="Title" required>
+        <input type="date" name="date" required>
+        <input type="time" name="time" required>
+        <input type="text" name="location" placeholder="Location" required>
+        <textarea name="instruction" placeholder="Event Instructions"></textarea>
+
+        <!-- NEW OPTIONAL LINK FIELD -->
+        <input type="text" name="externalLink" placeholder="External Registration Link (Optional)">
+
+        <input type="file" name="image" accept="image/*">
         <button type="submit">Add Event</button>
     </form>
 </div>
@@ -92,11 +125,13 @@
 
 <script>
 
-const API = "https://campusconnect-wasv.onrender.com";
+const API = "http://localhost:5000";
 
 function goBack() {
     window.location.href = "index.html";
 }
+
+/* ================= LOAD EVENTS ================= */
 
 async function loadEvents() {
     try {
@@ -106,15 +141,39 @@ async function loadEvents() {
         const container = document.getElementById("eventsContainer");
         container.innerHTML = "";
 
-        events.forEach(event => {
+        for (const event of events) {
+
+            // Fetch registration count
+            const countRes = await fetch(`${API}/download-registrations/${event._id}`);
+            let totalCount = 0;
+
+            try {
+                const blob = await countRes.blob();
+                totalCount = "Download to see list";
+            } catch {
+                totalCount = 0;
+            }
+
             container.innerHTML += `
                 <div class="event-card">
                     <h4>${event.title}</h4>
-                    <p>${event.date} - ${event.time}</p>
-                    <p>${event.location}</p>
-                    ${event.image ? `<img src="${event.image}" alt="Event Image">` : ""}
+                    <p><b>Date:</b> ${event.date}</p>
+                    <p><b>Time:</b> ${event.time}</p>
+                    <p><b>Location:</b> ${event.location}</p>
+                    ${event.instruction ? `<p><b>Instructions:</b> ${event.instruction}</p>` : ""}
+                    ${event.externalLink ? `<p><b>External Link:</b> <a href="${event.externalLink}" target="_blank">${event.externalLink}</a></p>` : ""}
+                    ${event.image ? `<img src="${API}${event.image}" alt="Event Image">` : ""}
 
                     <div class="event-actions">
+                        <button class="bell-btn" onclick="sendMail('${event._id}')">
+                            🔔 Send Mail
+                        </button>
+
+                        <button class="pdf-btn"
+                            onclick="downloadPDF('${event._id}')">
+                            📄 Download PDF
+                        </button>
+
                         <button class="delete-btn"
                             onclick="deleteEvent('${event._id}')">
                             Delete
@@ -122,13 +181,40 @@ async function loadEvents() {
                     </div>
                 </div>
             `;
-        });
+        }
 
     } catch (err) {
         console.error("Load error:", err);
         alert("Failed to load events");
     }
 }
+
+/* ================= DOWNLOAD PDF ================= */
+
+function downloadPDF(id) {
+    window.open(`${API}/download-registrations/${id}`, "_blank");
+}
+
+/* ================= SEND MAIL ================= */
+
+async function sendMail(id) {
+    if (!confirm("Send this event to all users via email?")) return;
+
+    try {
+        const res = await fetch(`${API}/send-notification/${id}`, {
+            method: "POST"
+        });
+
+        const data = await res.json();
+        alert(data.message);
+
+    } catch (err) {
+        console.error("Mail error:", err);
+        alert("Mail sending failed");
+    }
+}
+
+/* ================= DELETE EVENT ================= */
 
 async function deleteEvent(id) {
     if (!confirm("Delete this event?")) return;
@@ -148,6 +234,8 @@ async function deleteEvent(id) {
     }
 }
 
+/* ================= ADD EVENT ================= */
+
 document.getElementById("eventForm")
 .addEventListener("submit", async function(e) {
     e.preventDefault();
@@ -163,7 +251,8 @@ document.getElementById("eventForm")
         const data = await res.json();
 
         if (!res.ok) {
-            throw new Error(data.message || "Failed");
+            alert(data.message || "Failed to add event");
+            return;
         }
 
         alert(data.message);
